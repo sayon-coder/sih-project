@@ -1,0 +1,448 @@
+
+#### Histology of Muscle Tissue
+
+Cells of muscle tissue are called as muscle fibers.
+
+- **Sarcolemma:** It is an outermost covering of muscle fiber.
+- **Sarcoplasm:** Cytoplasm in the muscle cell is called as sarcoplasm.
+- **Contents of Sarcoplasm:** It consist of many nuclei, sarcoplasmic reticulum and transverse tubules.
+
+Each skeletal muscle fiber consists of thick myofilament and thin myofilament. Thick and thin myofilaments are arranged in compartments called as sarcomere.
+
+In the sarcomere there is alternate arrangement of thick and thin myofilaments which overlap each other. Alternate arrangement of thick and thin myofilament gives striated appearance to skeletal muscles.
+
+Thick myofilaments are made up of following proteins: 1) Actin and 2) Myosin.
+
+Proteins from which thin myofilaments are formed are: 1) Actin, 2) Troponin, 3) Tropomyosin.
+
+- **Cross bridges:** Projecting heads of myosin are called as cross bridges. They consist of actin and ATP binding sites.
+- **Sarcomeres** are separated from each other by narrow line called as Z line.
+- **Sarcomeres** consist of dark area called as 'A' band and light area called as 'I' band.
+
+**Neuromuscular junction:** Contraction and relaxation are two movements of skeletal muscle. Skeletal muscle must receive stimulus for its contraction by a motor neuron. Every muscle fiber receives motor nerve fiber (motor neuron). Axon is the thread like process of motor neuron which transmits motor stimulates from neuron to muscle fiber.
+
+- **Axon terminal:** When axon of motor nerve reaches surface of muscle fiber, this axon divides into branches. This branching of axon of motor neuron is called as axon terminal.
+- **Motor end plate:** The region of sarcolemma of muscle fiber in contact with axon terminal is called as motor end plate.
+- **Neuromuscular junction** consists of axon terminal of a motor neuron + motor end plate.
+- **Synaptic end bulb:** These are the bulb like structures present at the distal end of axon terminals. Synaptic end bulbs consist of neurotransmitter called as acetylcholine (Ach).
+- **Synoptic cleft:** It is a space between axon terminal and sarcolemma.
+- **Synoptic Gutter:** The portion of sarcolemma which surrounds axon terminal is called as synaptic gutter.
+
+#### Physiology of Muscle Contraction
+
+1. Motor neuron conducts stimulus to muscle fibers.
+2. Due to nerve action potential, synaptic end bulb releases acetylcholine (Ach).
+3. Acetylcholine diffuses across the synaptic cleft of neuromuscular junction.
+4. Due to Ach, muscle action potential develops and that spreads over sarcolemma.
+5. Sarcoplasmic reticulum releases calcium ion into sarcolemma.
+6. Due to calcium ions, troponin & tropomyosin move and due to this movement, myosin binding sites on actin gets exposed.
+7. Muscle needs energy for contraction.
+8. ATP is the source of energy for contraction.
+9. Due to action potential, energy is obtained from ATP molecules.
+10. The energy formed in ATP splits, and activates myosin cross bridges of myosin.
+11. Myosin cross bridges combine with myosin binding sites of actin.
+12. Thin and thick myofilaments slide overlap each other.
+13. Due to sliding of filaments, the sarcomeres shorten and muscle fibers contract and contraction of muscle takes place.
+14. After contraction Ach become inactive.
+15. Calcium ions go back to sarcoplasmic reticulum. Thin and thick myofilaments move to resting position. Sarcomeres returns to their resting length and muscle fiber relaxes.
+
+In this way contraction and relaxation of muscle takes place.
+
+#### Energy Source for Muscle Contraction and Relaxation
+
+1. **ATP:** It supplies energy for muscle contraction for short duration, i.e. only for 5 to 6 seconds.
+2. **Phospho-creatine:** Phospho-creatine is a high energy molecule. It is an alternative source of energy. When muscles required energy for a longer time then phospho-creatine is converted to energy. Phosphogen system provides energy for 15 seconds.
+3. **Glycogen lactic acid system:** In prolonged muscle activity, after phosphogen system, muscles uses glucose for energy. Glucose is converted to pyruvic acid. Formation of pyruvic acid doesn't require oxygen so it is called as aerobic respiration. Conversion of pyruvic acid takes place in the muscle fiber.
+
+Pyruvic acid → In presence of oxygen → CO2 + H2O
+
+This process needs oxygen, so called as cellular or aerobic respiration.
+
+In absence of oxygen following events take place:
+
+1. Pyruvic acid in absence of oxygen is converted into lactic acid.
+2. Lactic acid produces energy called as glycogen lactic acid system. Some lactic acid may leak in blood. Liver can convert lactic acid into glucose.
+3. Glycogen – Lactic acid system provides energy for 30 to 40 seconds of muscular activity.
+
+**Clinical application of muscle contraction and energy:** Knowledge of muscle contraction, energy supply of muscles is important in sports. Athletes consume large amount of carbohydrates just before the event, this is called as carbohydrate loading. Carbohydrate loading supply additional energy to athletes. For 100 meter running event, phosphogen system can provide energy. For 400 meter running event, glycogen lactic acid system provides energy for 30 to 40 seconds.
+
+#### Types of muscle contractions
+
+Isometric contraction, isotonic contraction, tetanus, treppe and twitch.
+
+#### Disorders of muscular system
+
+Fibromyalgia, muscular hypertrophy, muscular atrophy, myasthenia gravis, abnormal contractions like spasm, tremors fibrillation.
+
+---
+
+## Chapter 6: Medo Dhatu
+
+Medo dhatu is the Fourth dhatu formed & nourished by ahara rasa.
+
+### Etymology (Nirukti)
+
+The word meda is derived from the Sanskrit word meaning oleation or to apply oil. Medo dhatu is the unctuous dhatu like ghee.
+
+### Synonyms
+
+Mamsaja, mamsateja, asthikrit, vapa, vasa, goda.
+
+### Site
+
+1. Medo dhatu is distributed throughout the body.
+2. It is deposited under the skin.
+3. But mainly it is deposited on buttocks, breast and abdomen.
+
+### Medovaha srotas
+
+Vrikka (kidneys), vapavahana (omentum) are roots of medovaha srotas. (Cha.Vi. 5/10)
+
+In intrauterine life kidneys are formed from medo dhatu. Anatomically large amount of fat is deposited around both kidneys which is called as perinephric fat. The organ which has been formed from medo dhatu, controls the formation of medo dhatu after birth. Omentum is a storehouse or depot of medo dhatu. According to Sushruta, kati (pelvic girdle) is a root of medo dhatu.
+
+### Metabolism
+
+1. According to Kshira-dadhi nyaya, medo dhatu is formed after mamsa dhatu.
+2. Oily, soft food products undergo digestion & according to Khale-kapota nyaya, immediately medo dhatu is produced in medovaha srotas.
+3. Poshaka medo dhatu is acted upon by Agni of meda dhatu and poshya medo dhatu, its upadhatu and mala are formed in medovaha srotas:
+
+Nutrients of Medovaha srotas → Agni of meda dhatu →
+
+1. Formation of poshya medo dhatu
+2. Formation of poshaka asthi
+3. Formation of upadhatu & mala
+
+**Time required for transformation of medo dhatu:** On 15th day stable medo dhatu is formed. (Su.Su. 14/4)
+
+### Qualities
+
+1. Unctuousness
+2. Softness
+3. Heaviness
+4. Stability
+
+### Quantity
+
+Anjali pramana of medo dhatu is 2 anjali. (Cha.Sha. 7/17)
+
+Absence of symptoms of increase or decrease in medo dhatu indicates normal quantity of medo dhatu.
+
+### Functions of Medo dhatu
+
+1. To lubricate every cell of the body is the most important function of medo dhatu.
+2. It controls sweat formation.
+3. It provides strength, energy to the body.
+4. It controls dryness of Vata.
+
+While emphasizing lubricating action of medo dhatu, Charaka has given following example: He says that leather becomes more sturdy and strong due to application of oil or life of any machine can be improved by lubricating it with oil. In the same way regular application of oil on the body, provides strength to body constituents. Oily massage increases longevity.
+
+5. Proper nourishment of medo dhatu gives proper shape to the body.
+6. Medo dhatu acts as shock absorber.
+7. Medo dhatu protects body from excess cold or hot climate.
+8. In starvation energy can be obtained from medo dhatu.
+9. Asthiposhan is another important function of medo dhatu.
+
+(A.Hr.Su. 11/4; Su.Su. 15/5)
+
+### Symptoms of Medah sarata
+
+### Waste products
+
+Sweat is the waste product of medo dhatu. (Cha.Chi. 15/18)
+
+### Disorders of Medo dhatu
+
+#### Symptoms of Increase in Medo dhatu (Medo vriddhi)
+
+Over eating of sweet, oily heavy food, lack of body exercise leads to increase in meda dhatu. Fatigue, dyspnoea, pendulus growth of buttocks, breast, abdomen due to deposition of excess of medo dhatu. (A.Hr.Su. 11/10)
+
+Hot, light & dry food, heavy exercise, drugs like Triphala guggulu, Yogaraja guggulu reduces medo dhatu.
+
+#### Symptoms of Decrease in Medo dhatu (Medah kshaya)
+
+Symptoms of medah kshaya are loss of sensation (supti) in the waist region. Enlargement of spleen, emaciation of the body. Due to loss of medo dhatu spleen becomes palpable. But it should be noted that spleen is not enlarged in this condition. (A.Hr.Su. 11/17)
+
+Substances homologues to medodhatu i.e. heavy, oily, sweet food along with proper rest, oil massage is advised in Medah kshaya.
+
+Spleenomegaly, numbness around joints, dryness, craving for nonveg food are also the symptoms of medah kshaya. (Su.Su. 15/13)
+
+### ADIPOSE TISSUE
+
+Adipose tissue is a type of loose connective tissue.
+
+#### Adipocytes
+
+Cells of Adipose tissue are called adipocytes.
+
+**Shape of adipocytes:** Large, oval or round shape.
+
+**Distribution of adipose tissue:** Adipose tissue is found in following structures:
+
+1. Omentum
+2. Mesentery
+3. Perinephric region
+4. Around heart surface
+5. Marrow of long bones
+6. Mammary glands (breast)
+
+**Adipose tissue is absent in:**
+
+1. Eyelids
+2. Scrotum
+3. Labia minora
+4. Cranial cavity
+5. Lungs (except their roots)
+
+**Functions of adipose tissue:**
+
+1. Gives specific shape to body
+2. Regulation of body temperature
+3. Storage of fat
+4. Provides energy
+5. Keeps the viscera in position
+6. Acts as shock absorber
+7. It secretes hormone Leptin
+
+---
+
+## Chapter 7: Asthi Dhatu
+
+The hardest dhatu in the body is asthi dhatu or bone.
+
+### Synonyms
+
+Kikas, kulya, medoja, medoteja, sara, karkara are the synonyms of asthi dhatu.
+
+### Site
+
+It is present under the skin all over the body.
+
+### Moola sthana
+
+Medas dhatu & flat pelvic bones (jaghana) are roots of asthi dhatu. (Cha.Vi. 5/8)
+
+Medas is formed before asthi dhatu. Nutrition of asthi dhatu depends on proper nourishment of medo dhatu. Pelvic bones are pillars of the body, which serves the function of dharana, which is the function of asthi dhatu, hence jaghana is also a root of asthivaha srotas.
+
+### Kala
+
+Purisha-dhara kala is the 5th kala which exist in large intestine i.e. in pakvashaya. Function of purisha-dhara kala is to separate constituents of kitta or waste products in colon. Vayu which is produced in pakvashaya (as anna-mala) is a poshaka vayu, which nourishes poshya vayu of the body. (Dalhan on Su. Kalpa 4/40)
+
+Pakvashaya and asthi, both are main seats of Vata dosha. Therefore increased or decreased formation of Vata and purisha affects all sites of Vata, especially asthi dhatu. Hence purisha-dhara kala is also called as asthi-dhara kala.
+
+### Panchabhautika constitution
+
+In spite of presence of all 5 mahabhutas, asthi has predominance of prithvi and vayu mahabhuta. (Bhanumati on Su.Su. 15/8)
+
+### Qualities
+
+Due to predominance of prithvi mahabhuta, asthi dhatu is very strong, rough, and dry and hard. Due to action of vayu and Agni and prithvi mahabhutas, asthi become dry, rough and hard. (Cha. Chi. 15/31)
+
+### Types
+
+1. Nalakasthi – Long bones
+2. Kapalasthi – Flat bones
+3. Mandalakar asthi – Vertebrae
+4. Ruchakasthi – Teeth
+5. Tarunasthi – Cartilage
+
+### Metabolism
+
+Precursor of asthidhatu (Poshak asthi) is formed at the time of formation of medo dhatu. Metabolism of Asthi dhatu takes place in the Asthivaha srotas. (Dalhan on Su.Su. 14/10; Chakrapani on Cha.Vi. 5/12)
+
+Nutrients of asthi dhatu (Poshaka asthi) →
+
+1. Formation of poshya asthi dhatu
+2. Formation of asthi mala & upadhatu
+3. Formation of poshaka majja dhatu
+
+**Time taken for formation:**
+
+- According to Parashar, Asthi dhatu is formed on the 6th day.
+- According to Sushruta, Asthi dhatu is formed on 20th day. (Chakrapani on Cha.Chi. 15/20-35)
+
+### Functions
+
+1. Asthi dhatu supports the body, keeps body in erect position.
+2. All soft structures like mamsa, sira, and snayus are situated around asthi dhatu or bones. Snayus connect skeletal muscles to bones. Snayus act like anchor hence muscles can contract or relax.
+3. Asthi dhatu forms skeleton of the body. Function of asthi dhatu is compared to the hard core of bark of the tree.
+4. Asthi dhatu protects various important organs, for e.g. skull bone protects brain, ribs protects lungs and heart.
+5. Majja poshana is a function of asthi dhatu. Proper nourishment of majja dhatu depends on proper metabolism of asthi, because poshaka majja dhatu is formed during the formation of asthi dhatu.
+
+(A.Hr.Su. 11/4; Su.Sha. 5/21; Su.Su. 15/5)
+
+### Secondary Tissues – Upadhatus of Asthi dhatu
+
+According to Sharngadhara, teeth are upadhatus of asthi dhatu. (Adhamalla on Sharngadhar 1/5/16-17)
+
+### Waste products of asthi dhatu
+
+Hair and nails are waste products of asthi dhatu. (Cha.Chi. 15/30; Su.Su. 46/529)
+
+### Symptoms of Asthi sarata
+
+Heels (parshni), ankles (gulpha), knee joints, elbow (aratni), clavicles (jatru), chin (chibuka), head, metacarpo-phalangeal joints, nails and teeth bones of asthi sara person are larger, and stronger. Asthi sara individual is very enthusiastic in nature. Since the bones gives good strength and power, these persons can carry out heavy manual work or exercise. They are endowed with stable body and longevity. (Cha.Vi. 8/109)
+
+According to Sushruta, head, shoulders, teeth, nails, bones, mandibles of asthi sara person are prominent and are large in size. (Su.Su. 35/16)
+
+### Disorders of Asthi Dhatu
+
+#### Symptoms of Increased Asthi-dhatu (Asthi-vriddhi)
+
+Extra bones like cervical spine or calcaneal spur (adhyasthi), over crowding of teeth are (adhidanta) the symptoms of asthi vriddhi. (Su.Su. 15/18)
+
+Asthi dhatu and Vata dosha are related to each other. Their relationship is called as 'ashrayashrayi sambandha'.
+
+#### Symptoms of Decreased Asthi dhatu (Asthi-kshaya)
+
+Painful joints, pain in bones, falling of hair, breaking of nails, unhealthy, weak teeth are the symptoms of asthi kshaya.
+
+Excess of Vata has a reciprocal effect on asthi dhatu. This means that if the patient has excess of vata, he may suffer from asthi kshaya due to rarefaction of bones (osteoarthritic changes). Effects of asthi kshaya can be observed on the waste products of asthi dhatu i.e. on nails, hair and teeth.
+
+Triphala guggulu, Yogaraja guggulu, oil massage and basti are very helpful in asthi kshaya.
+
+### SKELETAL TISSUE
+
+Skeletal tissue or bone is a connective tissue. Skeletal system consists of all bones, joints and cartilages between joints.
+
+Bony tissue consist of following structures:
+
+**Bone matrix:** It is inter cellular substance. It surrounds cells of bone tissue. Intercellular substance contains (1) collagenous fibers, (2) mineral salts.
+
+#### Mineral salts of bone
+
+Calcium phosphate, calcium carbonate, magnesium hydroxide and fluoride etc. These salts are deposited in the framework of collagenous fibers. Because of these salts bone tissue hardens.
+
+#### Cells of bone tissue
+
+1. Osteogenic cells give rise to osteoblast cells.
+2. Osteoblast cells are related with bone formation.
+3. Osteocytes are mature bone cells or principle bone cells.
+4. Osteoclasts cells function in bone degradation.
+
+#### Type of bony tissue
+
+Compact bone tissue & Spongy bone tissue
+
+**Compact bone tissue:**
+
+1. This type of bone tissue is present at diaphysis.
+2. Provides protection and support to long bones.
+3. Compact bone contains few spaces.
+
+**Histology compact bone consist of:**
+
+1. Central canal (Haversian canal)
+2. Concentric lamellae – These are rings of hard intercellular substance and are present around central canal.
+3. Lacunae – Spaces between the lamellae are called as lacunae. Lacunae contains osteocytes.
+4. Canaliculi – These are small canals radiating from lacuna. Canaliculi connect with central canal. They provide nutrients to osteocytes and remove waste products.
+
+Central canal + concentric lamellae + lacunae + Canaliculi = Haversian system.
+
+**Volkmann's canals:** Blood vessels and nerves from the periosteum enter compact bone through Volkmann's canals.
+
+**Spongy bone:**
+
+1. Consists of larger spaces
+2. These spaces are filled with red bone marrow.
+3. Short, flat irregular bones, epiphyses of long bone consist of spongy bone tissue.
+
+**Histology of spongy bone tissue:** Spongy bone tissue consist of trabeculae. These are irregular network of thin plates of bone. The spaces inside are filled with bone marrow osteocytes and are present in marrow cavity.
+
+#### Functions of skeletal system
+
+1. Skeletal system supports the body
+2. This system provides frame work
+3. Gives support to soft organ
+4. Muscles are attached to bones, hence movements are possible.
+5. Ribs protect heart, lungs. Cranial bones protect brain.
+6. Bones store minerals.
+7. Red bone marrow produces blood cells.
+
+#### Disorders
+
+1. **Fracture:** Break in the bone structure is called fracture. It may be partial, simple, compound, hair line or green stick.
+2. **Rickets:** Vitamin D deficiency in children produce this disease.
+3. **Osteoporosis:** Bones become porous, weak due to removal of calcium from bones.
+4. **Osteomyelitis:** Infectious disease of bones.
+
+---
+
+## Chapter 8: Majja Dhatu
+
+The sixth dhatu nourished after asthi dhatu is majja dhatu. It is embedded deep within asthi hence it is called as majja.
+
+### Synonyms
+
+Asthi sneha, asthi sambhava, shukrakara, vimajjana sara are the synonyms of majja dhatu.
+
+### Site
+
+The cavity inside the long bones is filled with majja dhatu. Majja dhatu is deeply situated in the body. (Cha.Vi. 5/8; Su.Sha. 4/12)
+
+### Moola sthana
+
+Bones & joints are roots of majjavaha srotas.
+
+1. Majja dhatu resides in the long bones, poshaka majja dhatu is obtained from asthi dhatu, hence bones are root of majjavaha srotas.
+
+The another view must be highlighted here to explore relationship between hard, dry asthi dhatu & unctuous heavy & soft majja dhatu. Asthi dhatu is very light and dry. The hollow part in asthi dhatu is the main site of Vata dosha. Long bones have cavity (akasha) inside them. Unctuous majja dhatu inside the long bones keep the balance between asthi dhatu & Vata dosha.
+
+2. Joints are also root of majjavaha srotasa.
+
+The sixth Pittadhara kala is considered as majja dhara kala. (Dalhan on Su. Kalpa 4/40)
+
+### Majja dhatu & Mastulunga (Brain)
+
+Mastulunga (brain) is a sadyahpranahara marma. Mastulunga is present inside the flat bones of skull. Astanga Sangraha describes mastulunga as a majja dhatu & appearance of mastulunga is like solid ghee. Mastulunga is a majja dhatu. (A.S.Sha. 5/4)
+
+### Constitution
+
+There is predominance of Jala and Prithvi mahabhuta in majja dhatu. (Bhanumati on Su.Su. 15/8)
+
+### Metabolism
+
+Poshaka majja dhatu is formed during three fold transformation of asthi dhatu. Unctuousness of meda oozes through porous asthi dhatu & accumulates in the cavity of bones & after the action of dhatu-agni of majja, stable majja dhatu is formed. (Cha.Chi. 15/16; Su.Su. 15/5)
+
+### Waste Products of Majja dhatu
+
+Sneha (oily substance) excreted through eyes, faeces & skin is a waste product of majja dhatu.
+
+### Quantity
+
+Anjali pramana of majja dhatu is one anjali. Anjali pramana of mastishka is ½ anjali. (Cha.Sha. 7/15)
+
+### Qualities
+
+Majja dhatu is heavy and unctuous.
+
+### Symptoms of Majja sarata
+
+Person endowed with best quality of majja sarata has soft skin, & strong body. Complexion of such person is unctuous, voice is sweet. Joints are big, long & rounded. Such person is endowed with longevity, strength, intelligence, wealth, creativity, he loves children & gets respect in the society. (Cha.Vi. 8/110)
+
+According to Sushruta big eyes (maha netra) is a differentiating symptom of majja sarata. (Su.Su. 35/16)
+
+### Functions of Majja dhatu
+
+1. The most important function of majja dhatu is purana as this dhatu fills cavity inside the bones, and controls Vata dosha.
+2. As majja is an unctuous dhatu, it lubricates the body.
+3. Nourishment of shukra dhatu is the function of majja dhatu. Poshaka shukra dhatu is formed during the metabolism of majja dhatu.
+
+(A.Hr.Su. 11/4; Su.Su. 15/5)
+
+### Secondary tissue (upadhatu)
+
+According to Sharngadhara hairs are secondary tissue of majja dhatu. (Sharngadhar 1/5/17)
+
+### Disorders of Majja dhatu
+
+**Symptoms of Decreased Majja dhatu (Majja kshaya):**
+
+Osteoporosis (asthi soushirya), giddiness fainting are the symptoms of majja kshaya. (A.Hr.Su. 11/19)
+
+**Symptoms of Increased Majja dhatu (Majja vriddhi):**
+
+Heaviness of body & eyes, formation of painful nodules at interphalangeal joints (arunshi) are the symptoms of excess of majja dhatu. (A.Hr.Su. 11/11)
+
+### MYELOID TISSUE (Bone marrow)
+
+Bone marrow is present in the medullary cavities of the bones. Bone marrow is the connective tissue.

@@ -1,0 +1,116 @@
+"""
+Citation validation.
+
+Every answer produced by the RAG pipeline must cite only chunks that were
+actually retrieved.  This module validates that:
+
+  1. Each citation references a chunk_id in the retrieved set.
+  2. The title and source_type in the citation match the real chunk.
+
+If validation fails, the answer is replaced with the insufficient-evidence
+controlled response rather than letting a hallucinated citation reach the user.
+"""
+from __future__ import annotations
+
+import logging
+from typing import Dict, List, Set, Tuple
+
+from app.llm.schemas import CitationObject
+from app.rag.schemas import RetrievedChunk
+
+# Render jurisdiction codes ("IN", "INT") as human names ("India",
+# "International") so a citation never shows an ambiguous code (spec item 7).
+from app.analysis.ip_schemas import human_jurisdiction
+
+logger = logging.getLogger(__name__)
+
+INSUFFICIENT_EVIDENCE_MESSAGE = (
+    "Insufficient evidence in the current verified corpus to answer this question. "
+    "The available documents do not contain enough relevant information. "
+    "Please consult qualified legal, patent, or regulatory professionals for advice specific to your situation.\n\n"
+    "This platform provides preliminary, source-backed information and decision support. "
+    "It does not constitute legal, patent, regulatory, medical, or government advice or approval."
+)
+
+
+def validate_citations(
+    answer_citations: List[CitationObject],
+    retrieved_chunks: List[RetrievedChunk],
+) -> Tuple[bool, List[CitationObject]]:
+    """
+    Validate that all citations reference actually retrieved chunks.
+
+    Parameters
+    ----------
+    answer_citations:
+        Citations the LLM included in its structured response.
+    retrieved_chunks:
+        Chunks returned by hybrid_retrieve() and passed to the LLM.
+
+    Returns
+    -------
+    (is_valid, valid_citations)
+        ``is_valid`` is True only when ALL citations are valid.
+        ``valid_citations`` contains only the citations that passed validation.
+    """
+    if not retrieved_chunks:
+        logger.warning("Citation validation: no retrieved chunks — treating as insufficient evidence")
+        return False, []
+
+    # Build lookup by chunk_id
+    chunk_by_id: Dict[int, RetrievedChunk] = {c.chunk_id: c for c in retrieved_chunks}
+    retrieved_ids: Set[int] = set(chunk_by_id.keys())
+
+    valid: List[CitationObject] = []
+    all_valid = True
+
+    for citation in answer_citations:
+        if citation.chunk_id not in retrieved_ids:
+            logger.warning(
+                "Citation validation FAILED: chunk_id=%d not in retrieved set %s",
+                citation.chunk_id,
+                sorted(retrieved_ids),
+            )
+            all_valid = False
+            continue
+
+        real_chunk = chunk_by_id[citation.chunk_id]
+
+        # Verify title matches (case-insensitive prefix match)
+        if not _titles_match(citation.title, real_chunk.title):
+            logger.warning(
+                "Citation title mismatch: cited='%s', real='%s' (chunk_id=%d)",
+                citation.title,
+                real_chunk.title,
+                citation.chunk_id,
+            )
+            all_valid = False
+            continue
+
+        # Fill in real metadata from the retrieved chunk
+        citation.document_id = real_chunk.document_id
+        citation.source_type = real_chunk.source_type
+        citation.jurisdiction = human_jurisdiction(real_chunk.jurisdiction)
+        citation.publication_date = real_chunk.publication_date
+        citation.url = real_chunk.source_url
+        citation.page_number = real_chunk.page_number
+
+        valid.append(citation)
+
+    if not valid:
+        all_valid = False
+
+    logger.debug(
+        "Citation validation: %d/%d citations valid",
+        len(valid),
+        len(answer_citations),
+    )
+    return all_valid, valid
+
+
+def _titles_match(cited_title: str, real_title: str) -> bool:
+    """Fuzzy title match — allow the LLM to shorten the title slightly."""
+    cited = cited_title.lower().strip()
+    real = real_title.lower().strip()
+    # Exact match, or one is a prefix/substring of the other
+    return cited == real or cited in real or real[:40] in cited

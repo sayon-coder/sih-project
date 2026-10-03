@@ -1,0 +1,77 @@
+{
+  "kind": "eval_run",
+  "mode": "offline",
+  "generated_at": "2026-09-28T04:39:01",
+  "dataset_path": "C:\\Users\\USER\\OneDrive\\Desktop\\sih-main\\OneDrive\\Desktop\\sih\\IP-SHAKTI\\BACKEND\\eval\\dataset.jsonl",
+  "results_path": null,
+  "results": [],
+  "report": {
+    "mode": "offline",
+    "dataset": {
+      "passed": true,
+      "errors": [],
+      "total": 66,
+      "counts": {
+        "answer_accuracy": 16,
+        "citation_correctness": 16,
+        "safe_abstention": 16,
+        "multilingual_quality": 18
+      },
+      "languages": {
+        "en": 54,
+        "hi": 6,
+        "bn": 6
+      },
+      "language_groups": 6
+    },
+    "axes": {
+      "answer_accuracy": {
+        "score": 0.0,
+        "scored_items": 0,
+        "note": "no results for answer_accuracy items",
+        "passed": false,
+        "unscored": 16,
+        "per_item": []
+      },
+      "citation_correctness": {
+        "score": 0.0,
+        "scored_items": 0,
+        "note": "no results for citation_correctness items",
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "invalid_citations": 0,
+        "uncited_claims": 0,
+        "unscored": 16,
+        "per_item": []
+      },
+      "safe_abstention": {
+        "score": 0.0,
+        "correct_abstentions": 0,
+        "false_confident_answers": 0,
+        "rate": 0.0,
+        "expected_abstentions": 16,
+        "unnecessary_abstentions": 0,
+        "scored_items": 0,
+        "unscored": 16,
+        "per_item": []
+      },
+      "multilingual_quality": {
+        "score": 0.0,
+        "scored_items": 0,
+        "note": "no results for multilingual_quality items",
+        "language_parity": 0.0,
+        "translation_honesty": 0.0,
+        "dataset_parity": 1.0,
+        "unscored": 18,
+        "per_item": []
+      }
+    },
+    "section_scores": {
+      "dataset_structure": 1.0
+    },
+    "overall": 1.0,
+    "structure_only": true,
+    "results_count": 0
+  }
+}

@@ -1,0 +1,31 @@
+# Secrets - never commit (per AGENTS.md rule 4)
+.env
+BACKEND/.env
+*.env
+!**/.env.example
+# keep example templates, ignore real keys - handled above
+
+# Python
+BACKEND/.venv/
+BACKEND/venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.hypothesis/
+
+# Data / uploads / generated
+BACKEND/data/uploads/
+BACKEND/data/reports/
+
+# Frontend (also covered by FRONTEND/.gitignore)
+FRONTEND/node_modules/
+FRONTEND/dist/
+FRONTEND/dist-ssr/
+
+# OS / editors
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+.idea
+*.sw?

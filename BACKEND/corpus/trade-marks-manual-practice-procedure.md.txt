@@ -1,0 +1,577 @@
+---
+title: "Manual of Trade Marks Practice & Procedure"
+source_pdf: "1_32_1_tmr-draft-manual.pdf"
+file_name: "trade-marks-manual-practice-procedure.md"
+document_type: "Draft manual / procedural guide"
+subject: "Trade Marks Law and Practice"
+jurisdiction: "India"
+original_language: ["English", "Hindi"]
+translated_to: "English"
+keywords:
+  - Trade Marks Act 1999
+  - Trade Marks Rules 2002
+  - Trade Marks Registry
+  - TM forms
+  - opposition
+  - rectification
+  - renewal
+  - assignment
+  - registered user
+  - Vienna Codification
+entities:
+  - Controller General of Patents, Designs & Trade Marks
+  - Trade Marks Registry
+  - IPAB
+  - Appellate Board
+  - Registrar of Trade Marks
+page_count: "approx. 143"
+chunking: "heading-based; target 500–800 tokens"
+---
+
+# Manual of Trade Marks Practice & Procedure
+
+## 1. Document Overview
+
+This is a draft manual published by the Office of the Controller General of Patents, Designs & Trade Marks, Government of India, Ministry of Commerce & Industries. It explains the practice and procedure followed by the Trade Marks Registry under the **Trade Marks Act, 1999** and the **Trade Marks Rules, 2002**.
+
+The manual aims to bring uniformity and consistency in trade marks administration. It is a guide; if any statement conflicts with the Act or Rules, the Act/Rules prevail. It references Indian case law and is expected to be updated periodically.
+
+### Hindi / Bilingual Text Translation
+
+Original Hindi/bilingual text on page 2:
+
+> भारत सरकार, वाणिज्य और उद्योग मंत्रालय, कार्यालय महानियंत्रक एकस्त्र अभिकल्प एवं व्यापार चिन्ह, बौद्धिक संपदा भवन, एस.एम.रोड, एन्टॉप हिल, मुंबई 400037
+
+English translation:
+
+> Government of India, Ministry of Commerce & Industries, Office of Controller General of Patents, Designs & Trade Marks, Bhoudhik Sampada Bhavan, S.M. Road, Antop Hill, Mumbai-400037.
+
+## 2. Key Concepts and Glossary
+
+| Term | Meaning |
+|---|---|
+| Act | Trade Marks Act, 1999 |
+| Rules | Trade Marks Rules, 2002 |
+| TMR | Trade Marks Registry |
+| TMS | Trade Marks System |
+| TMAS | Trade Marks Automation System |
+| Vienna Codification | International Classification of Figurative Elements of Marks |
+| Appropriate Office | Head office at Mumbai or branch offices at Ahmedabad, Chennai, Delhi, Kolkata |
+| TM-1 | Application for registration of trademark for goods/services in one class |
+| TM-2 | Convention application with priority claim |
+| TM-51 | Single application for different classes |
+| TM-16 | Request for amendment/correction |
+| TM-5 | Notice of opposition |
+| TM-6 | Counter statement |
+| TM-26 | Application for rectification |
+| TM-57 | Review application |
+| PARM | Pending Applications Records Management |
+| PRAS | Pre-Registration Amendment Section |
+| SCHS | Show Cause Hearing Section |
+| RR&A | Renewal, Restoration & Amendment Section |
+
+## 3. Chapter I: Filing of Documents in Trade Marks Registry
+
+### Section A: General Filing Requirements
+
+<!-- chunk_id: tmm-ch1-secA-001 -->
+
+- A document may be filed by a person or duly authorised agent at the appropriate office.
+- Appropriate offices: Head Office (Mumbai) and branch offices (Ahmedabad, Chennai, Delhi, Kolkata).
+- Certain documents under Rule 8(2) may be filed only at Head Office unless Registrar directs otherwise.
+- Relevant provisions: Section 18; Rules 4, 8, 15.
+
+#### Requirements as to Content
+
+Applications, notices and requests must generally include:
+- Trade mark number(s)
+- Name and address for service
+- Name of proprietor if different from applicant
+- Details and grounds of action
+- Appropriate class(es)
+- Proprietor code or agent code, if allotted
+- Signature(s) and name of signatory
+- Date and place of filing
+
+For online filing, digital signature is treated as signing.
+
+#### Who Can Sign?
+
+- Applicant or authorised agent.
+- Legal practitioner, registered trade mark agent, or person in sole and regular employment of principal.
+- Partnership firm: at least one partner signing on behalf of firm.
+- Body corporate: director, secretary, or other principal officer; capacity must be stated.
+
+#### Address for Service
+
+- Person with no principal place of business in India must supply an address for service in India.
+- Indian applicants may also mention address for service.
+- Change of address for service: Form TM-16 or TM-50 with fee.
+- Correspondence sent to first addressee where multiple addresses given.
+
+#### Fees
+
+- As per First Schedule, Trade Marks Rules 2002.
+- Payment by cash, bank draft, cheque drawn on scheduled bank, or online payment through ipindia.nic.in.
+
+#### Non-Compliance
+
+- Fee-bearing documents: if appropriate fee not paid, deemed not filed.
+- Dishonoured cheque / non-realised demand draft = fee not paid.
+- Non-fee-bearing documents: not accepted if unsigned or missing application/opposition/rectification/RU/CC number.
+
+#### Filing Process
+
+1. Received through FRONT OFFICE module of TMS.
+2. Documents addressed to Registrar received by office superintendent or assistant/clerk.
+3. R&E section opens post; fee-bearing documents sent to cash counter; acknowledgement generated for non-fee documents.
+4. Stamp with date and signature affixed.
+5. Data entry in EDP module.
+6. Device marks scanned in original colours and uploaded.
+7. R&E section digitises incoming papers/documents.
+8. Post-registration requests with multiple marks: scanned copies uploaded against every registered trademark covered.
+
+### Section B: Filing of Trade Mark Application
+
+<!-- chunk_id: tmm-ch1-secB-001 -->
+
+#### Who Can File?
+
+- A person claiming to be proprietor of the trade mark in relation to goods and/or services.
+- “Person” includes: natural person, body incorporate, partnership firm, HUF, association of persons (collective marks), joint proprietor, trust, society, government authority/undertaking.
+
+#### Jointly Owned Trademark
+
+- Two or more persons who use or propose to use a trademark independently may apply as joint proprietors.
+- Circumstances under Section 24(2).
+
+#### Trade Mark May Be
+
+- Already in use; or
+- Proposed/intended to be used; or
+- Intended to be assigned to a company about to be formed and registered under Companies Act, 1956.
+
+#### Details Required from Applicant
+
+- Individual: full name; business/trading name is additional, not substitute.
+- Joint owners: full name of each joint owner.
+- Partnership firm: names of all partners.
+- Companies: name under which incorporated; abbreviations acceptable.
+- Government departments: “Government of India/State of … represented by …”
+- Statutory organisations/public sector undertakings: reference to statute; e.g., Life Insurance Corporation of India (established under … Act).
+- Conventional application: home country address plus address for service in India.
+- Statement of use: date since when mark used, unless proposed to be used; cannot be changed subsequently. Rule 27.
+- Clear specification of goods/services; not unrealistically broad. Rule 25(15).
+
+#### Form of Application
+
+- Prescribed forms in Schedule II, Trade Marks Rules 2002.
+- Section 18; Rules 12(1), 13(1), 14(2).
+
+#### Information Required
+
+- Name of proprietor(s)
+- Valid email ID
+- Principal place of business
+- Address for service
+- Type of mark: word, label, device, etc.
+- Convention applications: single priority date; separate applications for different priority dates.
+
+#### Representation of Trademark
+
+- Size: generally no larger than 8 cm x 8 cm.
+- Must show all features clearly, be reproducible, and preserve features over time.
+- Series marks: endorsements required where colours differ.
+- Shape marks: must state if shape trade mark; perspective drawing; concise description; up to 5 further views if needed; photographs acceptable if clear originals.
+- Combination of colours: claim as colour trade mark; exact description as per International Classification System of Colours; graphical representation; concise description.
+- Non-English/Hindi words or non-Roman/Devnagari characters: English/Hindi translation and/or transliteration required. Rule 33.
+- Endorsement format: “The applicant has provided that the translation of the (nationality/language) words appearing in the trademark is …”
+
+#### Specification of Goods/Services
+
+- Single application may cover one or more classes.
+- Goods/services grouped by class number and presented in ascending numerical order.
+- Use terms from published Classification, available at TMR or www.ipindia.nic.in.
+- “All goods”, “all services”, “all other goods”, “all other services” prohibited. Rule 25(15).
+- Unrealistically broad specifications may require affidavit or amendment.
+- Multi-class applications: if goods/services fall in more than one class, applicant may delete items or add classes with divisional fee and class fee.
+
+#### Signature and Date
+
+- Application must be signed and dated.
+- Signatories: applicant or authorised person under Section 145: legal practitioner, trade marks agent, person in sole and regular employment.
+- If signed on behalf, name and designation of signatory must be given.
+- Trustee applications: signed by managing trustee or authorised person.
+- Unauthorised signatory: applicant asked to have authorised person sign.
+- Multiple applicants: each individual must sign unless agent signs for all.
+- Name of each signatory written legibly below signature.
+- If undated, no request for date; filing date is fee stamp date.
+
+#### Fees
+
+- As per Schedule I.
+- Specification exceeding 500 characters: excess character fee in Form TM-61. Rule 11(3) & (4), Rule 25(16).
+
+#### Consequences of Non-Compliance
+
+- Registrar notifies deficiencies; one month to rectify.
+- If not rectified, application may be treated as abandoned. Rule 36.
+
+#### Data Entry and Vienna Codification
+
+- Data entry in EDP module.
+- Device marks scanned in original colours and uploaded.
+- Vienna Codification Section codifies figurative elements under Vienna Agreement.
+
+## 4. Chapter II: Examination of Applications
+
+<!-- chunk_id: tmm-ch2-001 -->
+
+### Introduction and Scope
+
+- After data entry and digitisation, application allotted to examiner.
+- Examiner examines under Trade Marks Act & Rules.
+- Allotment automatic through TMS in order of filing date/time.
+- Expedited examination: Form TM-63, approved by Receipt & EDP Section.
+- Examiner typically handles 20 applications.
+- Examiner checks:
+  - Whether application filed as prescribed.
+  - Whether trademark can be refused on relative/absolute grounds.
+  - Whether restrictions/conditions/limitations required.
+- Examiner searches earlier identical/similar marks and prepares consolidated examination report.
+- If unable to examine due to formality requirement, may ask applicant to comply and defer examination.
+
+### Key Examination Points
+
+1. **Identification of Nature of Application**
+   - Forms: TM-1, TM-2, TM-51, TM-52, TM-3, TM-64, TM-4, TM-65, TM-66, TM-67, TM-68, TM-69, TM-8, TM-37.
+   - If wrong form, examiner examines as per nature and requires correction via TM-16.
+
+2. **Appropriate Name of Applicant**
+   - Individual: full name; e.g., “Ram Kumar Verma, an Indian National trading as Verma Trading Company”.
+   - Company: e.g., “M/s Singh Industries Limited, a company registered in India under Indian Companies Act 1956”.
+   - Firm: names of all partners; guardian for minor partner.
+   - Trust: managing trustee/chairman representing trust.
+   - Society: secretary or authorised person.
+   - Government: “Government of India/Government of (state) represented by (name of department) through its Secretary Mr. xxx”.
+   - Government undertaking: reference to statute.
+   - Joint applicants: names of all joint proprietors.
+
+3. **Power of Attorney**
+   - Form TM-48 duly stamped required if application filed by person other than applicant.
+   - Agent can be legal practitioner, registered trade mark agent, or constituted attorney.
+   - Power of Attorney in favour of firm without individual agent name not accepted. Section 145, Rule 21.
+
+4. **Principal Place of Business**
+   - Must be mentioned.
+   - If no principal place in India, address for service in India required. Section 18(3), 143; Rules 17 & 18.
+
+5. **Transliteration and Translation**
+   - Non-English/Hindi marks: transliteration into Roman script and translation into English required. Rule 33.
+   - Endorsement on application and additional representations.
+   - If not provided, examination deferred and deficiency communicated.
+
+6. **Consent for Names/Representations**
+   - Consent of person or legal representative required if trademark contains name or representation of that person.
+
+7. **Collective Marks**
+   - Draft regulations under Section 63, Rule 128, in triplicate with Form TM-49.
+   - Contents: name/addresses of association, object, members, membership conditions, authorised users, control, sanctions, appeal procedure.
+
+8. **Certification Marks**
+   - Draft regulations under Section 74, Rule 135, on Form TM-49.
+   - Contents: description, nature of business, infrastructure, competence, financial arrangement, non-discrimination undertaking, characteristics indicated, monitoring.
+
+9. **Priority Claims**
+   - Convention applications: priority document/certificate from Registry/competent authority required.
+   - Section 154; Rule 26.
+   - If missing, objection raised.
+
+10. **Classification of Goods and Services**
+    - NICE Classification current edition.
+    - Section 8; Rule 22(2).
+    - If wrong class, examiner suggests appropriate class and requires correction via TM-16.
+    - Wide/vague specifications objected under Rule 25(15). Examples: “machines” in Class 7, “electric/electronic apparatus” in Class 9, “miscellaneous services”.
+
+11. **Relative Grounds for Refusal**
+    - Section 11(1): identity/similarity with earlier mark and identity/similarity of goods/services causing likelihood of confusion.
+    - Earlier trade mark includes registered mark or prior pending application.
+    - Identical mark: reproduces all elements without modification, or differences insignificant.
+    - Similarity: “deceptively similar”.
+    - Likelihood of confusion: probable, not necessary actual confusion.
+    - Factors: similarities/differences, distinctiveness of earlier mark, degree of similarity of goods/services.
+    - Pianotist case rules: judge by look, sound, goods, customer, surrounding circumstances.
+    - General rules: compare marks as whole; no letter-by-letter comparison; average intelligence and imperfect recollection; overall structural, visual, phonetic similarity and similarity of idea.
+    - Medicinal products: exacting judicial scrutiny.
+    - Composite marks: if prominent/distinctive portion identical, earlier mark may conflict. Example: CROCIN PLUS vs CROCIN FORTE.
+    - Office action wording for Section 11(1) objection.
+
+12. **Absolute Grounds for Refusal**
+    - Section 9(1)(a): devoid of distinctive character.
+    - Section 9(1)(b): exclusively descriptive of kind, quality, quantity, intended purpose, value, geographical origin, time of production, or other characteristics.
+    - Section 9(1)(c): customary in current language or bona fide established trade practices.
+    - Acquired distinctiveness: evidence of use by affidavit; factors: market share, intensity/geographic spread/duration, investment in promotion, proportion of relevant class identifying goods, statements from chambers/associations.
+    - Distinctiveness in various types:
+      - Letters/numbers: single/two letters generally devoid; numbers designating quantity, quality, date, size, etc. objectionable.
+      - Common names/surnames: prima facie not capable; Section 35 protects bona fide use.
+      - Misspellings of descriptive words: still objectionable.
+      - Foreign languages: if not known to significant public, not descriptive; if local language descriptive, objection.
+      - Domain names: registerable if otherwise registrable; “.com”, “co.in” non-distinctive.
+      - Slogans: registrable if distinctive or acquired distinctiveness; plain descriptive slogans objectionable.
+      - Combination of colours: colour trademark; single colour usually objectionable; weighty evidence needed.
+      - Sound marks: must be clearly stated; graphically represented by musical notes; prima facie no sound marks accepted without evidence of factual distinctiveness.
+    - Section 9(2): prohibits marks that deceive/confuse, hurt religious susceptibilities, scandalous/obscene, or prohibited under Emblems and Names (Prevention of Improper Use) Act, 1950.
+    - Geographical origin deception: e.g., PIAZZA D’ITALIA for clothing, SWISSTEX for watches.
+    - Olympic symbols: not to be registered except under authority of Olympic Committee.
+    - Religious susceptibilities: names/pictures of Gods/Goddesses generally not per se offensive, but use on certain goods may offend.
+    - Scandalous/obscene matter: objective assessment; outrage among identifiable section.
+    - Prohibited names/emblems: UNO, Ashok Chakra, British Royal Arms, Lord Buddha, Shree Sai Baba, Sri Ramkrishna, etc.
+    - Red Cross/Geneva Cross: not accepted; green crosses on white background generic for pharmacy; white crosses on green backgrounds generic for first aid.
+    - Section 9(3): shape of goods not registrable if exclusively results from nature of goods, necessary to obtain technical result, or gives substantial value.
+    - Section 13: prohibition of registration of names of chemical elements or international non-proprietary names.
+
+13. **Draft Communication of Objections**
+    - Standard wording for objections under Sections 9(1)(a), 9(1)(b), 9(1)(c), 9(2), 9(3), 13, and Central Government instructions under Section 23(1).
+
+14. **Examination of Series Marks**
+    - Section 15: series marks substantially resembling in material particulars, differing in non-distinctive matter.
+    - If not eligible, objection raised and applicant required to delete or divide via TM-53.
+
+15. **Conditions of Acceptance / Limitation of Use**
+    - Section 18(4): Registrar may accept absolutely or subject to amendments, modifications, conditions or limitations.
+    - Examiner proposes conditions in examination report.
+    - Examples: variation condition, blank space condition, joint use condition, association condition, limitation as to area/mode of use, colour limitation, disclaimer wording.
+
+16. **Communication of Examination Report**
+    - Consolidated report through system: formality objections, Section 9/11 objections, proposals for conditions/limitations.
+    - Transmitted to Supervising Examiner for approval.
+    - Released on website www.ipindia.nic.in.
+    - Sent to applicant/agent by email and post.
+
+## 5. Chapter III: Post Examination Disposal
+
+<!-- chunk_id: tmm-ch3-001 -->
+
+### Flow
+
+1. Examination report sent.
+2. Application objected.
+3. Applicant replies to examination report.
+4. PARM officials consider reply.
+5. If not accepted, show cause hearing.
+6. If accepted/ABA, publication in Trade Marks Journal.
+7. No opposition within 4 months: registration.
+8. Registration certificate issued.
+
+### Consideration of Applicant’s Reply
+
+- Reply can be submitted by scanned colour PDF to parm.tmr@nic.in, online with Level III digital signature, or at office.
+- Affidavits/supporting documents may be attached.
+- Formality objections: applicant complies or explains.
+- Classification objection: amendment or explanation.
+- Non-distinctiveness: establish capability or acquired distinctiveness with affidavit.
+- Relative grounds: distinguish marks/goods/services, or consent/no objection from cited mark proprietor.
+- PARM officer considers reply; may accept, publish, impose conditions/limitations, or move for hearing.
+- Advertisement Before Acceptance (ABA) invoked in exceptional circumstances, strong evidence of bona fide commercial adoption and use.
+- TM-16 amendment requests disposed first.
+
+### Abandonment if No Reply
+
+- If no reply within one month from receipt of examination report by post, notice under Section 132 generated.
+- If still no response, order treating application as abandoned generated.
+- Rule 38(4), 38(5); Section 132.
+
+### Show Cause Hearing
+
+- If objections cannot be waived, matter set for hearing through TMS.
+- Hearing scheduled at appropriate office.
+- Cause list prepared monthly, displayed on website/notice board.
+- Hearing notice sent approx. 15 days before hearing.
+- Hearing Officer hears submissions, peruses documents, disposes application.
+- TM-16 amendments disposed first.
+
+### Publication in Trade Marks Journal
+
+- Accepted applications advertised in journal.
+- Advertisement contains mark, application date, priority claim, applicant details, address for service, class/specification, statement of use, appropriate office.
+- Journal published every Monday on www.ipindia.nic.in.
+- Contents: public notices, accepted applications, re-advertisements, corrigenda, registered/renewed/removed marks, post-registration changes, INNs, other information.
+
+### Withdrawal of Acceptance
+
+- Registrar may withdraw acceptance if accepted in error or should have been subject to different conditions/limitations.
+- Officer in charge of EPR/PRAS puts note to CGPDTM.
+- After approval, matter moved to Show Cause Hearing Section.
+- Notice under Rule 42 to applicant.
+- Applicant may withdraw, agree, amend, or request hearing.
+- If no response, acceptance deemed withdrawn; application proceeds as if not accepted.
+- Section 19, Rule 42.
+
+### Registration of Trademarks
+
+- After 4 months from advertisement, if no opposition or opposition disposed in favour of applicant, proceeds for registration.
+- Applications taken in order of seniority of advertisement.
+- Officer ensures data entry correct, advertisement correct, no pending amendment, no withdrawal of acceptance, no pending opposition, no prohibition, no formality requirement left.
+- Entry made in Register of Trade Marks under Section 6.
+- Section 23: registration date is date of making application.
+- Certificate issued with seal of Trade Marks Registry.
+- Rule 59: entry specifies filing date, actual registration date, goods/services, class, particulars under Section 6(1).
+
+## 6. Chapter IV: Tribunal Section — Opposition & Rectification
+
+<!-- chunk_id: tmm-ch4-001 -->
+
+### Section A: Opposition
+
+- After advertisement, any person may oppose within 4 months. Section 21.
+- Opposition filed before Registrar only; not directly to Court/IPAB.
+- Form TM-5; fee Rs. 2,500.
+- Grounds: Sections 9, 11, 13, 14, 18(1).
+- Notice of opposition contents: impugned application no., goods/services, applicant name; earlier mark/right details; opposing party details; verification.
+- Applicant files counter statement in Form TM-6 within 2 months; fee Rs. 1,000.
+- If no counter statement, application deemed abandoned.
+- Formality check by Cash Section; entry in Tribunal module of TMAS.
+- Service of notice on applicant; service of counter statement on opponent.
+- Evidence by affidavits; Rule 116.
+- Opponent files evidence within 2 months; extension up to 1 month via TM-56.
+- If no evidence, opposition deemed abandoned.
+- Applicant files evidence within 2 months; extension up to 1 month.
+- Opponent may file evidence in reply within 1 month.
+- Further evidence with leave.
+- Digitisation of record.
+- Hearing: notice at least 1 month after first notice; Form TM-7 to notify intention to appear.
+- Adjournment: Form TM-56 with fee Rs. 500.
+- Non-appearance: applicant application may be abandoned; opponent opposition may be dismissed.
+- Correction/amendment: TM-16, TM-53.
+- Decision communicated to parties; updated in TMAS.
+
+### Section B: Rectification
+
+- Any person may apply for removal/cancellation/variation/rectification.
+- Grounds:
+  - Section 47: non-use within 5 years.
+  - Section 57(1)&(2): person aggrieved; contravention/failure to observe conditions, absence/omission, entry without sufficient cause, wrongly remaining, error/defect.
+  - Section 68: collective mark removal.
+  - Section 77: certification mark cancellation/variation.
+  - Section 57(4): Tribunal suo motu.
+  - Section 58: correction by registered proprietor.
+  - Section 59: alteration of registered trade mark.
+  - Section 60: change of classification.
+- Application in Form TM-26 or TM-43, in triplicate, with statement.
+- Registered proprietor files counter statement in Form TM-6 within 2 months.
+- Rules 50–57 apply mutatis mutandis.
+- Hearing and disposal as in opposition.
+- Digitisation.
+- Tribunal suo motu rectification under Section 57(4): notice to proprietor and registered users; hearing.
+
+### Section C: Review
+
+- Section 127(c): Registrar may review own decision.
+- Form TM-57 within 1 month, extendable by 1 month.
+- Grounds: discovery of new and important matter/evidence; mistake/error apparent on face of record; any other sufficient reason.
+- Fee Rs. 2,000.
+- Service on other person if decision concerns them.
+- Hearing and decision by same officer generally; Section 4 allows transfer.
+- Digitisation.
+
+## 7. Chapter V: Pre-Registration Amendment
+
+<!-- chunk_id: tmm-ch5-001 -->
+
+- Correction of data entry errors or amendment before registration.
+- Form TM-16 with fee and supporting documents.
+- No substantial alteration in trademark, proprietor details, specification (except deletion), statement of use.
+- Permitted: change in proprietorship via valid assignment/transmission, address change, deletion/confinement of goods/services, limitation in area of sale, division of multi-class application.
+- PRAS section disposes requests; updates system.
+- Correction of data after advertisement: corrigendum for clerical errors; re-advertisement for major errors.
+- Correction in registration certificate: minor errors corrected and certificate reissued; major errors initiate Section 57(4) proceedings.
+- Division of applications: Form TM-53; divided application retains original filing date; new serial number.
+
+## 8. Chapter VI: Renewal, Assignment/Transmission, Registered User and Post-Registration Changes
+
+<!-- chunk_id: tmm-ch6-001 -->
+
+### Renewal
+
+- Registration valid for 10 years from date of registration. Section 23(1), 25(1).
+- Prior notice on Form O-3 not less than 1 month and not more than 3 months before expiration. Section 25(3), Rule 64(1).
+- Application for renewal: Form TM-12, not more than 6 months before expiration. Rule 63(1).
+- Who can apply: registered proprietor or duly authorised agent.
+- Fee: Rs. 5,000 per class; series Rs. 5,000 per mark; multi-class Rs. 5,000 per class; collective/certification Rs. 10,000.
+- Renewal after expiration: within 6 months with surcharge Rs. 3,000 on Form TM-10.
+- Restoration: Form TM-13 with Rs. 5,000, renewal fee and surcharge, after 6 months but within 1 year. Section 25(4), Rule 66.
+- If no renewal up to 1 year, mark removed from date of expiration.
+- Renewal processed through Renewal module; intimation generated; published in journal.
+
+### Assignment & Transmission
+
+- Assignment/transmission passes proprietorship.
+- Registered trademark assignable with or without goodwill.
+- Unregistered trademark may also be assigned/transmitted with or without goodwill.
+- Restrictions on creating multiple exclusive rights; Registrar may approve if not contrary to public interest.
+- Assignment without goodwill: assignor must obtain Registrar’s directions and advertise.
+- Certification trademark assignment requires Registrar’s consent.
+- Associated trademarks assigned together.
+- Disputed validity: Registrar may refuse registration until court determines.
+- Forms: TM-24 (application to register title), TM-23 (joint request), TM-17/TM-19 (multiple exclusive rights), TM-20 (directions), TM-21 (extension), TM-62 (certification mark consent).
+- Fees vary; see First Schedule.
+- Documents: original/certified copy of instrument of title; affidavit Form TM-18 if required.
+- Recordal process: scan/upload, data entry in POST REGISTRATION module, scrutiny, examination, disposal, publication.
+
+### Registered Users
+
+- Permitted use defined in Section 2(1)(r).
+- Application jointly by registered proprietor and proposed user on Form TM-28.
+- Documents: agreement in writing, authenticated copies, affidavit of registered proprietor.
+- Variation: Form TM-29; cancellation: TM-30 or TM-31.
+- Fees: TM-28 Rs. 5,000 first mark, Rs. 3,000 additional; TM-29 Rs. 5,000 first, Rs. 2,500 additional; TM-30 Rs. 2,500 first, Rs. 500 additional; TM-31 Rs. 5,000 first, Rs. 2,000 additional.
+- Recordal process: scan/upload, data entry in REGISTERED USER module, scrutiny, examination, publication.
+
+### Post-Registration Amendments
+
+- Correction/amendment of name/description: Form TM-33.
+- Address of proprietor: Form TM-34.
+- Address for service: Form TM-50.
+- Cancellation of registered trademark: Form TM-35.
+- Strike out goods/services: Form TM-36.
+- Adaptation after amendment in Fourth Schedule: Form TM-40.
+- Alteration in registered trademark: Form TM-38.
+- Fees as per First Schedule.
+- Recordal process: scan/upload, data entry in PR Entry of POST REGISTRATION module, scrutiny, examination, publication.
+
+## 9. RAG Q&A Extraction
+
+### Q: What is the objective of the Trade Marks Manual?
+**A:** To bring uniformity and consistency in practice and procedure of the Trade Marks Registry, and to serve as a guide for officers and users.
+
+### Q: What is the time limit for filing a notice of opposition?
+**A:** Within 4 months from the date of advertisement or re-advertisement in the Trade Marks Journal. Section 21(1).
+
+### Q: What is the fee for filing a notice of opposition?
+**A:** Rs. 2,500, First Schedule entry No. 12, Trade Marks Rules 2002.
+
+### Q: What is the term of registration and renewal period?
+**A:** 10 years from date of registration, renewable from time to time.
+
+### Q: What form is used for renewal?
+**A:** Form TM-12.
+
+### Q: What is the effect of non-payment of renewal fee?
+**A:** Mark becomes liable to be removed; restoration possible via Form TM-13 within 1 year with fees and surcharge.
+
+### Q: What is the difference between opposition and rectification?
+**A:** Opposition challenges registration before grant after advertisement; rectification challenges a registered trademark after registration.
+
+### Q: What is “permitted use”?
+**A:** Use by a registered user or by a person other than registered proprietor/registered user with consent in a written agreement, in the course of trade, for registered goods/services, complying with conditions/limitations.
+
+## 10. References and Page Map
+
+- Page 1–3: Title, objective, index.
+- Page 7–13: Chapter I filing requirements.
+- Page 14–28: Section B application requirements.
+- Page 29–72: Chapter II examination.
+- Page 73–102: Chapter III post-examination disposal.
+- Page 103–123: Chapter IV tribunal, opposition, rectification, review.
+- Page 124–126: Chapter V pre-registration amendment.
+- Page 127–143: Chapter VI renewal, assignment, registered user, post-registration changes.

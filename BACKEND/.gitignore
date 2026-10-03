@@ -1,0 +1,2 @@
+# Never commit secrets — this project keeps all keys in .env
+.env
