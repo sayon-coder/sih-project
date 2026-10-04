@@ -627,6 +627,89 @@ check("POST /api/knowledge/index 200", code == 200, resp)
 check("A fresh account indexes nothing",
       resp["data"]["attempted"] == 0 and resp["data"]["skipped"] == 0, resp)
 
+print("=== Clarifications, registry, privacy, graph, agent (new UI calls) ===")
+
+resp, code = req("GET", f"{base}/{vid}/clarification-questions", token=token)
+check("Clarification questions 200 + list",
+      code == 200 and isinstance(resp["data"]["questions"], list), resp)
+first_q = resp["data"]["questions"][0]["question_key"] if resp["data"]["questions"] else "dosage_form"
+resp, code = req("POST", f"{base}/{vid}/clarifications",
+                {"question_key": first_q, "answer": "Recorded by the flow check."}, token=token)
+check("Answer a clarifying question 201", code == 201, resp)
+resp, code = req("POST", f"{base}/{vid}/clarifications",
+                {"question_key": "no-such-key", "answer": "x"}, token=token)
+check("Unknown question key 404", code == 404, resp)
+
+resp, code = req("GET", "/api/official-sources", token=token)
+check("Official-sources registry 200 + entries",
+      code == 200 and len(resp["data"].get("sources", resp["data"])) >= 1, resp)
+sources_list = resp["data"].get("sources", resp["data"])
+paid = next((s for s in sources_list if s.get("requires_permission")), None)
+check("Registry labels at least one paid/restricted source", paid is not None, resp)
+resp, code = req("GET", "/api/official-sources/topics", token=token)
+check("Registry topics 200", code == 200, resp)
+
+resp, code = req("GET", "/api/privacy/notice", token=token)
+check("Privacy notice 200 with version",
+      code == 200 and bool(resp["data"].get("version")), resp)
+resp, code = req("POST", "/api/privacy/consent", {"purposes": ["assistant"]}, token=token)
+check("Consent without explicit grant is refused",
+      code == 400, resp)
+resp, code = req("POST", "/api/privacy/consent",
+                {"purposes": ["assistant"], "grant": True}, token=token)
+check("Explicit consent grant 200",
+      code == 200 and resp["data"]["consent"]["granted"] is True, resp)
+cid = resp["data"]["consent"]["id"]
+resp, code = req("DELETE", f"/api/privacy/consent/{cid}", token=token)
+check("Consent withdrawal 200", code == 200, resp)
+
+resp, code = req("POST", "/api/privacy/sources/consent",
+                {"source_id": paid["id"], "access_type": "PAID_SUBSCRIPTION",
+                 "scope": ["handoff"]}, token=token)
+check("Paid permission without confirm is refused", code == 400, resp)
+resp, code = req("POST", "/api/privacy/sources/consent",
+                {"source_id": paid["id"], "access_type": "PAID_SUBSCRIPTION",
+                 "scope": ["handoff"], "confirm": True}, token=token)
+check("Paid permission grant 200 + logged",
+      code == 200 and resp["data"]["consent"]["permission"] == "GRANTED", resp)
+scid = resp["data"]["consent"]["id"]
+resp, code = req("POST", "/api/privacy/sources/access",
+                {"source_id": paid["id"]}, token=token)
+check("Consent-checked handoff 200",
+      code == 200 and resp["data"].get("mode") == "HANDOFF", resp)
+resp, code = req("DELETE", f"/api/privacy/sources/consent/{scid}", token=token)
+check("Permission revoke 200", code == 200, resp)
+resp, code = req("POST", "/api/privacy/sources/access",
+                {"source_id": paid["id"]}, token=token)
+check("Access after revoke is blocked 403", code == 403, resp)
+
+resp, code = req("POST", "/api/graph/build", {"full": False}, token=token)
+check("Graph build 200 + nodes",
+      code == 200 and resp["data"]["nodes_total"] >= 1, resp)
+resp, code = req("GET", "/api/graph/nodes?node_type=IP_TYPE", token=token)
+check("Graph node filter 200",
+      code == 200 and all(n["node_type"] == "IP_TYPE" for n in resp["data"]["nodes"]), resp)
+resp, code = req("GET", "/api/agent/tools", token=token)
+check("Agent tool registry non-empty",
+      code == 200 and len(resp["data"]) >= 1, resp)
+resp, code = req("POST", "/api/agent/run",
+                {"query": "Which IP routes fit an Ayurvedic oil?", "max_steps": 1},
+                token=token, timeout=240)
+check("Deterministic agent run 200 + persisted",
+      code == 200 and resp.get("run_id") is not None
+      and resp.get("review_required") is True, resp)
+resp, code = req("GET", "/api/agent/traces", token=token)
+check("Agent traces list the run",
+      code == 200 and len(resp["data"]["traces"]) >= 1, resp)
+
+if ai_available:
+    resp, code = req("POST", "/api/assistant/chat",
+                    {"message": "What does the Patents Act require for Ayurvedic formulations?",
+                     "jurisdiction_mode": "india"}, token=token, timeout=240)
+    check("Chat honours the jurisdiction switch",
+          code == 200 and resp.get("jurisdiction_mode") == "india"
+          and resp.get("jurisdiction_filter") == ["India"], resp)
+
 print(f"\n{len(results)} checks PASSED against {BASE}.")
 if not ai_available:
     print("Note: the AI provider was unavailable, so the analysis error path was "

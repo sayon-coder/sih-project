@@ -276,6 +276,22 @@ npm run dev        # http://localhost:5173
 
 The Vite dev server proxies `/api/*` to `http://localhost:8000` (see `FRONTEND/vite.config.js`), so no CORS configuration is needed in development.
 
+### Full-stack Docker deployment
+
+For a containerised run (PostgreSQL + pgvector, backend, production frontend):
+
+```bash
+cp BACKEND/.env.example BACKEND/.env   # then set DATABASE_URL, JWT_SECRET_KEY, GROQ_API_KEY
+docker compose up --build              # app at http://localhost:8080
+docker compose exec backend python scripts/seed_roles.py
+docker compose exec backend python scripts/ingest_corpus.py --dir corpus/ --public --corpus-version v1.1-verified
+```
+
+`BACKEND/Dockerfile` runs `alembic upgrade head` on start (the app never
+creates tables at boot); `FRONTEND/Dockerfile` bakes the production bundle
+behind nginx with `/api/*` proxied to the backend. Docker is not required
+for development - the two-terminal setup above is enough.
+
 ### 5. Open the app
 
 Visit **http://localhost:5173**, click **Register** (JSON fields: username, email, password, confirm_password), then log in.
@@ -409,7 +425,7 @@ Frontend routes: `/` (landing), `/login`, `/register`, `/home`, `/products`, `/p
 
 ## Project status and documentation
 
-**Status: all phases 0–13 implemented and verified** (see [PROJECT_STATUS.md](PROJECT_STATUS.md) for evidence per phase).
+**Status: all phases 0–13 implemented and verified, plus the problem-statement completion batch** (explicit jurisdiction switch, citation confidence, clarifications loop, mounted privacy/registry/graph/agent layers, migrations 012–014, Docker deployment) — see [PROJECT_STATUS.md](PROJECT_STATUS.md) for evidence per phase.
 
 | Document | Purpose |
 |---|---|
@@ -420,7 +436,7 @@ Frontend routes: `/` (landing), `/login`, `/register`, `/home`, `/products`, `/p
 | [BACKEND/README.md](BACKEND/README.md) | Complete API reference |
 | `../IP-SAKTI-Sahayak-Backend-Master-Prompt.txt` | Original specification this project is built against |
 
-**Verification at a glance:** `295` pytest tests pass; per-phase live scripts pass against real PostgreSQL; the exact spec-17 chat scenario passes its live acceptance checks against the real LLM.
+**Verification at a glance:** `501` pytest tests pass (in-memory SQLite); per-phase live scripts plus the extended frontend-flow script pass against real PostgreSQL; the exact spec-17 chat scenario passes its live acceptance checks against the real LLM.
 
 ---
 

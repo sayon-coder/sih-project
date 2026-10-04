@@ -1231,7 +1231,10 @@ class TestDebugAndDisclaimer:
         assert dbg["chunks_created"] >= 1
         # The filter guard restored the uploaded chunk for retrieval.
         assert dbg["upload_chunks_retrieved"] >= 1
-        assert dbg["filters_applied"] == ["jurisdiction:Germany"]
+        assert dbg["filters_applied"] == [
+            "jurisdiction:Germany",
+            "jurisdiction_mode:both",
+        ]
         assert dbg["sections_supported"] + dbg["sections_abstained"] == len(
             body["sections"]
         )

@@ -128,6 +128,53 @@ class TestCitationValidation:
         assert not is_valid  # not all valid
         assert len(valid) == 1  # chunk 1 is valid
 
+    def test_confidence_single_citation_is_high(self):
+        from app.rag.citation import validate_citations
+        chunks = [self._make_chunk(42)]
+        citations = [self._make_citation(42)]
+        _, valid = validate_citations(citations, chunks)
+        assert valid[0].confidence_score == 1.0
+        assert valid[0].confidence_label == "HIGH"
+
+    def test_confidence_relative_tiers(self):
+        from app.rag.citation import validate_citations
+        from app.rag.schemas import RetrievedChunk
+        chunks = [
+            RetrievedChunk(
+                chunk_id=i, document_id=1, title="Test Doc",
+                source_type="regulation", text="Some content.",
+                final_score=s,
+            )
+            for i, s in ((1, 0.1), (2, 0.5), (3, 0.9))
+        ]
+        citations = [self._make_citation(i) for i in (1, 2, 3)]
+        _, valid = validate_citations(citations, chunks)
+        by_id = {c.chunk_id: c for c in valid}
+        assert by_id[3].confidence_label == "HIGH"
+        assert by_id[3].confidence_score == 1.0
+        assert by_id[2].confidence_label == "MEDIUM"
+        assert by_id[1].confidence_label == "LOW"
+        assert by_id[1].confidence_score == 0.0
+        for c in valid:
+            assert 0.0 <= c.confidence_score <= 1.0
+
+
+class TestResolveLocalFile:
+    def test_stored_path_wins_when_present(self, tmp_path):
+        from app.rag.ingestion import _resolve_local_file
+        f = tmp_path / "doc.md"
+        f.write_text("hello", encoding="utf-8")
+        doc = type("D", (), {"id": 1, "file_path": str(f)})()
+        assert _resolve_local_file(doc) == str(f)
+
+    def test_missing_path_returns_none(self):
+        from app.rag.ingestion import _resolve_local_file
+        doc = type("D", (), {
+            "id": 2,
+            "file_path": r"C:\Nobody\Here\no-such-dir\no-such-file-xyz.md",
+        })()
+        assert _resolve_local_file(doc) is None
+
 
 # -------------------------------------------------------
 # Parser unit tests

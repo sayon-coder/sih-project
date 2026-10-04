@@ -407,7 +407,7 @@
 - [x] Add API client methods (disclosures, reports + download, reviews, dashboard, audit, BHASHINI)
 - [x] Add `DisclosuresSection` + `ReportsSection` to the version detail page
 - [x] Add `/reviews` page (create, transition buttons, comments)
-- [x] Add `/dashboard` page (counts, recent disclosures, recent activity)
+- [~] `/dashboard` page REMOVED on user request (2026-10-04) - nav link, route and `Dashboard()` deleted from `App.jsx`; Home stat tiles still reuse the backend `GET /api/dashboard` endpoint, which is unchanged
 - [x] Add chat input/output language selects wired to `input_language`/`output_language`
 - [x] Verify production build (`vite build`, 0 errors)
 - [x] Extend `scripts/verify_frontend_flow.py` (+19 checks, 127/127 live)
@@ -588,6 +588,21 @@ renamed or modified.
   ingested - market sections keep the honest no-evidence sentence until ingest
 
 ---
+
+## Problem-statement completion batch (2026-10-04, Bhashini excluded)
+
+- [x] Explicit jurisdiction switch: `jurisdiction_mode` (both/india/international) on chat, strict scope, toolbar control, 5 new tests
+- [x] Citation confidence indicator populated from reranker scores (all paths via `validate_citations`) + chat badge UI
+- [x] Mount privacy + official-sources registry routers (migration 012 for fresh DBs)
+- [x] Mount knowledge-graph + agent routers, fix `AgentRun` import (migration 013), 8 new tests
+- [x] Clarification model/service/router/endpoints (migration 014), version-page Q&A card, 6 new tests
+- [x] Fix BUG-4 pathways drift (test aligned to the six problem-statement categories)
+- [x] Fix `ingest_document` int/object contract crash + cross-checkout stale-path fallback
+- [x] Deploy artifacts: backend/frontend Dockerfiles, nginx conf, full-stack compose, README deploy docs
+- [~] Corpus ingest of the remaining disk files (bulk done; OOM/timeout retries in progress)
+- [ ] Re-run `scripts/fix_corpus_jurisdictions.py` after ingest, confirm India/International/Germany-EU labelling
+- [ ] Persist the chat panel metadata on `chat_messages` so history reloads show it (pre-existing open item)
+- [ ] Bhashini API key (translation stays in honest fallback until provided)
 
 ## Legend
 - [ ] Not started

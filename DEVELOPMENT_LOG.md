@@ -2,6 +2,85 @@
 
 ---
 
+## Entry: 2026-10-05 (Chat PDF race fix + review-desk email resend)
+
+### Bug 1: PDF attached but "no PDF document was provided"
+Root-caused with live-DB evidence: `chat_attachments` id=10 (8,135 chars
+extracted, session NULL, 16:08 UTC) was still uploading when message 158 was
+sent at 16:09:16, so the chat request carried `attachment_ids=[]` and the
+assistant honestly answered that no PDF was provided. The re-attached message
+160 (attachment 11, session-bound) answered normally. The upload/parsing and
+the RAG injection were never broken - the UI let the user send mid-upload.
+Fix (frontend only, `FRONTEND/src/App.jsx`): Send is disabled while
+`uploadingAttachment` (label shows "Uploading…"), `handleSend` refuses with
+an explanatory error if an upload is in flight, and a zero-text PDF now
+warns that it may be a scanned image the chatbot cannot use.
+
+### Feature 2: review-desk email from /reviews
+`POST /api/reviews/{id}/notify` (`ReviewService.notify` +
+`app/routers/reviews.py`) resends the `notify_service` email for any visible
+review and reports `{sent, reason}` honestly. `/reviews` has an
+"Email reviewer" button per selected review (`api.notifyReview` + inline
+result). Note: nodemailer (Node.js) cannot run in this Python/React stack,
+so sending stays on the existing stdlib `smtplib` path - same Gmail SMTP,
+no new dependencies.
+
+### Tests executed
+- `pytest tests/test_notify.py tests/test_phase9_reviews.py
+  tests/test_chat_attachments.py` - **38 passed** (incl. new
+  `test_notify_endpoint_reports_outcome`: 200 + honest skip + 404).
+- Live round-trip (fresh user -> product -> review -> notify): 201/200 with
+  `sent: False, reason: SMTP not configured`; unknown id 404.
+- `vite build` clean; ESLint 19 = pre-existing baseline (zero in new code).
+- Backend restarted with `--reload` (was running stale code without it).
+
+### Open: needs the user (SMTP credentials - email cannot send until then)
+Gmail SMTP login - an **app password**, not the login password
+(Google Account -> Security -> 2-Step Verification -> App passwords).
+Either hand it over or put these in `BACKEND/.env` directly:
+`SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=587`, `SMTP_USERNAME=<gmail>`,
+`SMTP_PASSWORD=<16-char app password>`, `SMTP_USE_TLS=true`,
+`REVIEW_NOTIFY_EMAIL=sayonsawbib@gmail.com` (already the default).
+
+---
+
+## Entry: 2026-10-05 (Chatbot activity status animation)
+
+### Task
+Replace the static "Searching the corpus and drafting a cited answer…" line
+with a subtle rotating AI activity/status animation, without changing chatbot
+functionality, API logic or styling.
+
+### What was implemented (`FRONTEND/src/App.jsx` only)
+- New reusable `AyurvedaActivityIndicator({ active, messages, intervalMs })`
+  plus `AYURVEDA_ACTIVITY_MESSAGES` constant (4 honest generic statuses:
+  "Understanding your query…" / "Searching the verified corpus…" /
+  "Comparing relevant information…" / "Formulating the response…").
+  Statuses map to real pipeline stages (query read -> hybrid retrieval ->
+  rerank/compare -> generation); no specific source is named.
+- Wired to the existing `loading` state in `ChatAssistant.handleSend`:
+  mounted only while generating, unmounts (timer stops) on answer, error or
+  retry; fresh mount restarts the sequence for consecutive messages.
+- Same pill styling as before (fixed 40px min-height, muted `#5B6670` text);
+  per-status fade/slide animation
+  (`opacity 0→1→0`, `translateY(6px)→0→-6px`, 1.9s cycle, `key={index}`
+  restart), small pulsing dot, `role="status"` + `aria-live="polite"`,
+  `prefers-reduced-motion` falls back to opacity-only, no layout shift.
+
+### Tests executed
+- `npx vite build`: clean (26 modules, 482.50 kB JS).
+- `npx eslint src/App.jsx`: 19 errors, zero in the new code (all 19 are
+  pre-existing working-tree issues: unused vars + set-state-in-effect in
+  untouched sections).
+- No browser was connected this session: visual check of the animation
+  timing on `/chat` (short/long answers, error path) is still open.
+
+### Next step
+Visual browser check of `/chat`; edit `AYURVEDA_ACTIVITY_MESSAGES`
+(`App.jsx` ~line 6050) to change wording later.
+
+---
+
 ## Entry: 2026-09-26 (Phases 8b-13)
 
 ### Phases: 8b Reports, 9 Expert Review, 10 Dashboard/Audit/Admin, 11 BHASHINI, 12 Frontend, 13 Integration

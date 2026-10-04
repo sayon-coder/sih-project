@@ -17,12 +17,14 @@ class CitationObject(BaseModel):
     relevant_text: str = Field(..., description="The exact passage from the chunk that supports the answer")
     url: Optional[str] = None
     # ── Confidence indicator (SIH requirement: "mandatory source citations with
-    #    a confidence indicator").  Populated from the cross-encoder reranker
-    #    score (0.0 – 1.0); label is the human-readable tier shown in the UI.
+    #    a confidence indicator").  Stamped by validate_citations from the
+    #    retrieval ranking: relative match strength within THIS answer only
+    #    (0–1, min-max normalised across the answer's cited chunks) - NOT a
+    #    probability and NOT comparable across answers. None when unstamped.
     confidence_score: Optional[float] = Field(
         None,
         ge=0.0, le=1.0,
-        description="Reranker similarity score (0–1). None when score unavailable.",
+        description="Relative match strength within this answer (0-1).",
     )
     confidence_label: Optional[str] = Field(
         None,

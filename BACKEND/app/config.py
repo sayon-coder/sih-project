@@ -98,6 +98,18 @@ class Settings(BaseSettings):
     # production runs with) no debug payload is ever added to responses.
     debug: bool = False
 
+    # -------------------------------------------------------
+    # Review-desk email notifications (stdlib smtplib; best-effort -
+    # review creation never fails when these are unset or sending fails)
+    # -------------------------------------------------------
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_username: str = ""
+    smtp_password: str = ""
+    smtp_use_tls: bool = True
+    review_notify_email: str = "sayonsawbib@gmail.com"
+    review_notify_from: str = ""
+
     @property
     def cors_origins_list(self) -> List[str]:
         """Parse CORS origins as a list."""

@@ -11,6 +11,7 @@ from app.models.change_impact_models import ChangeImpact
 from app.models.disclosure_models import Disclosure, DisclosureType
 from app.models.report_models import Report, ReportType
 from app.models.review_models import ExpertReview, ReviewComment, ReviewStatus
+from app.models.clarification_models import ClarificationAnswer
 from app.models.rag_models import (
     SourceDocument, SourceChunk, ChatSession, ChatMessage,
     DocumentSourceType, DocumentStatus, MessageRole
@@ -44,6 +45,8 @@ __all__ = [
     "ExpertReview",
     "ReviewComment",
     "ReviewStatus",
+    # Clarification answers (interactive classification loop)
+    "ClarificationAnswer",
     # RAG models
     "SourceDocument", "SourceChunk", "ChatSession", "ChatMessage",
     "DocumentSourceType", "DocumentStatus", "MessageRole",

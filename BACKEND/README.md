@@ -499,6 +499,23 @@ The chat response reports `product_id`, `product_version_id` and the
 `provenance` of the sources used (`VERIFIED_PUBLIC_SOURCE` for the shared
 corpus, `USER_PROVIDED` for your own uploaded documents).
 
+**Explicit jurisdiction switch:** `POST /api/assistant/chat` accepts
+`jurisdiction_mode` (`both` | `india` | `international`, default `both`).
+`both` preserves the passport-market scope; `india` restricts retrieval to
+Indian sources; `international` to labelled non-Indian sources (unlabelled
+documents are excluded - their regime cannot be verified). Strict modes
+also drop neutral-background chunks so the layers never conflate, add a
+scope line to the model prompt, and echo `jurisdiction_mode` in the
+response next to `jurisdiction_filter`.
+
+**Citation confidence:** every validated citation carries
+`confidence_score` (relative match strength within that answer, 0-1, not a
+probability) and `confidence_label` (`HIGH` | `MEDIUM` | `LOW`).
+
+**Facilitator escalation:** `POST /api/assistant/escalate` records an
+audit-logged handoff request to a human IP facilitator (`ESC-` id + contact
+channels; the MVP keeps no live queue and says so).
+
 **Selective answering (master-prompt items 16-17):** a multi-part question is
 decomposed into sub-questions (>= 2 question marks or >= 3 task verbs), each is
 retrieved separately (uploaded attachment chunks are always re-merged into
@@ -567,9 +584,42 @@ invention-disclosure disclaimer (not a patent application, no priority).
   original text is returned with `translated: false` and a warning - never an
   invented translation. Patent numbers, URLs, DOIs and dates are never altered.
 
+### Clarifying questions (interactive classification loop)
+
+- `GET /api/products/{id}/versions/{vid}/clarification-questions` - the
+  minimum deterministic questions for this version (spec order, genuine gaps
+  only), each with its passport `destination` and answered state
+- `GET/POST /api/products/{id}/versions/{vid}/clarifications` - read/record
+  answers (upsert per question; recording never edits version content)
+
+### Official sources registry + DPDP privacy
+
+- `GET /api/official-sources[?jurisdiction=&ip_type=&topic=&access=&q=]` -
+  curated registry; `FREE` entries open directly, paid/restricted entries
+  return `requires_permission: true` with a `restricted_note`
+- `GET /api/official-sources/topics`, `GET /api/official-sources/{source_id}`
+- `GET /api/privacy/notice`, `GET/POST /api/privacy/consent`,
+  `DELETE /api/privacy/consent/{id}` - notice + explicit grants/withdrawals
+- `POST/DELETE /api/privacy/sources/consent[/{id}]` - paid-connector
+  permission (`confirm: true` mandatory), idempotent revoke
+- `POST /api/privacy/sources/access` - consent-checked handoff (403 +
+  logged block without permission; the platform never fetches paid data)
+- `GET /api/privacy/sources/access-log`, `GET /api/privacy/export`,
+  `DELETE /api/privacy/account`, `GET /api/privacy/retention`,
+  `POST /api/privacy/purge` (ADMIN)
+
+### Knowledge graph + agent (Stage 2)
+
+- `POST /api/graph/build[?full=]` - idempotent build/refresh with counts
+- `GET /api/graph/nodes[?node_type=&q=&limit=]`,
+  `GET /api/graph/nodes/{id}`, `GET /api/graph/paths?from=&to=`
+- `POST /api/agent/run` - multi-step plan/execute/observe loop with
+  validated citations, persisted to `agent_runs`
+- `GET /api/agent/tools`, `GET /api/agent/traces[/{run_id}]` (owner-scoped)
+
 ## Development Phases
 
-All phases are implemented and verified (203/203 pytest tests pass, plus live PostgreSQL verification scripts per phase):
+All phases are implemented and verified (501/501 pytest tests pass, plus live PostgreSQL verification scripts per phase and the extended frontend-flow script):
 
 - Phase 0: Repository Inspection
 - Phase 1: Backend Foundation, Authentication, RBAC

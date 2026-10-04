@@ -1,0 +1,55 @@
+# Full-stack local deployment: PostgreSQL + pgvector, FastAPI backend,
+# React frontend (production build behind nginx).
+#
+#   1. cp BACKEND/.env.example BACKEND/.env   # then set DATABASE_URL,
+#      JWT_SECRET_KEY and GROQ_API_KEY
+#   2. docker compose up --build
+#   3. Open http://localhost:8080  (API docs at http://localhost:8080/api/docs)
+#
+# First run: the backend seeds nothing by itself - run once inside the
+# backend container:
+#   docker compose exec backend python scripts/seed_roles.py
+#   docker compose exec backend python scripts/ingest_corpus.py \
+#     --dir corpus/ --public --corpus-version v1.1-verified
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: ip-sakti-postgres
+    environment:
+      POSTGRES_USER: ipsakti
+      POSTGRES_PASSWORD: ipsakti
+      POSTGRES_DB: ipsakti
+    volumes:
+      - ip_sakti_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ipsakti -d ipsakti"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: ./BACKEND
+    container_name: ip-sakti-backend
+    env_file:
+      - ./BACKEND/.env
+    environment:
+      # Compose-internal database URL wins over the .env value so the
+      # stack works without editing .env for local deploys.
+      DATABASE_URL: postgresql://ipsakti:ipsakti@postgres:5432/ipsakti
+      PUBLIC_BASE_URL: http://localhost:8080
+    depends_on:
+      postgres:
+        condition: service_healthy
+    expose:
+      - "8000"
+
+  frontend:
+    build: ./FRONTEND
+    container_name: ip-sakti-frontend
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
+
+volumes:
+  ip_sakti_pgdata:

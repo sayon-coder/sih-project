@@ -164,40 +164,55 @@ def _canon(value: Optional[str]) -> str:
 NEUTRAL_JURISDICTIONS = {"international"}
 
 
-def chunk_in_scope(jurisdiction: Optional[str], allowed: Sequence[str]) -> bool:
+def chunk_in_scope(
+    jurisdiction: Optional[str],
+    allowed: Sequence[str],
+    *,
+    strict: bool = False,
+) -> bool:
     """True when a chunk may be shown to the model.
 
-    Untagged chunks (jurisdiction empty) are general background and stay
-    citable; tagged chunks must belong to the allowed list.
+    Market scope (strict=False): untagged chunks are general background and
+    stay citable, as do neutral international-background jurisdictions;
+    tagged chunks must belong to the allowed list.
+
+    Explicit jurisdiction switch (strict=True): only chunks whose labelled
+    jurisdiction is in the allowed list survive - neutral and unlabelled
+    chunks are dropped so the two layers can never conflate.
     """
     jur = (jurisdiction or "").strip()
+    allowed_set = {_canon(a) for a in allowed}
+    if strict:
+        return bool(jur) and _canon(jur) in allowed_set
     if not jur:
         return True
     canon = _canon(jur)
     if canon in NEUTRAL_JURISDICTIONS:
         return True
-    return canon in {_canon(a) for a in allowed}
+    return canon in allowed_set
 
 
 def apply_jurisdiction_scope(
     chunks: Sequence[RetrievedChunk],
     allowed: Sequence[str],
+    *,
+    strict: bool = False,
 ) -> Tuple[List[RetrievedChunk], List[Tuple[str, str]]]:
     """Split retrieved candidates into (in_scope, excluded).
 
     ``excluded`` is a list of ``(jurisdiction_label, title)`` for every
     out-of-scope tagged candidate. Filtering events are logged so a
-    leaked source can be traced during debugging.
+    leaked source can be traced during debugging. With ``strict=True``
+    (explicit jurisdiction switch) neutral and unlabelled chunks are
+    excluded as well - see :func:`chunk_in_scope`.
     """
     if not allowed:
         return list(chunks), []
-    allowed_set = {_canon(a) for a in allowed}
     kept: List[RetrievedChunk] = []
     excluded: List[Tuple[str, str]] = []
     for chunk in chunks:
         jur = (chunk.jurisdiction or "").strip()
-        canon = _canon(jur) if jur else ""
-        if not jur or canon in NEUTRAL_JURISDICTIONS or canon in allowed_set:
+        if chunk_in_scope(chunk.jurisdiction, allowed, strict=strict):
             kept.append(chunk)
         else:
             excluded.append((human_jurisdiction(jur) or jur, chunk.title))
@@ -235,8 +250,11 @@ class JurisdictionScopeTracker:
         private_doc_ids: Iterable[int] = (),
         final_k: int = 6,
         candidate_k: int = 18,
+        strict: bool = False,
     ) -> None:
         self.allowed = list(allowed_jurisdictions or ())
+        #: Explicit-switch strictness: drop neutral/unlabelled chunks too.
+        self.strict = strict
         self.market_scopes: Dict[str, List[str]] = {
             label: list(juris or ())
             for label, juris in (market_scopes or {}).items()
@@ -296,7 +314,9 @@ class JurisdictionScopeTracker:
                 )
             )
             if allowed:
-                kept, excluded = apply_jurisdiction_scope(raw, allowed)
+                kept, excluded = apply_jurisdiction_scope(
+                    raw, allowed, strict=self.strict
+                )
                 for label, title in excluded:
                     self.excluded.setdefault(title, label)
                 if len(kept) > self.final_k:
@@ -333,6 +353,18 @@ def build_scope_block(scope: Optional[dict]) -> str:
     if markets:
         lines.append("Selected target markets: " + ", ".join(markets))
     lines.append("Allowed source jurisdictions: " + ", ".join(allowed))
+    mode = (scope.get("jurisdiction_mode") or "both").lower()
+    if mode == "india":
+        lines.append(
+            "Human-selected jurisdiction scope: INDIA ONLY - rely solely on "
+            "Indian law and sources; never substitute another jurisdiction's law."
+        )
+    elif mode == "international":
+        lines.append(
+            "Human-selected jurisdiction scope: INTERNATIONAL ONLY - rely "
+            "solely on international treaties, regimes and non-Indian sources; "
+            "never substitute Indian law."
+        )
 
     counts: Dict[str, int] = {}
     provider = scope.get("counts_provider")

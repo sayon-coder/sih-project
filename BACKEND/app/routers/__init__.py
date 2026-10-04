@@ -18,6 +18,10 @@ from app.routers.dashboard import router as dashboard_router
 from app.routers.audit import router as audit_router
 from app.routers.admin import router as admin_router
 from app.routers.sources import router as source_router
+from app.routers.sources_registry import router as sources_registry_router
+from app.routers.privacy import router as privacy_router
+from app.routers.graph import router as graph_router
+from app.routers.clarifications import version_router as clarification_router
 from app.routers.users import router as user_router
 
 __all__ = [
@@ -40,5 +44,9 @@ __all__ = [
     "admin_router",
     "bhashini_router",
     "source_router",
+    "sources_registry_router",
+    "privacy_router",
+    "graph_router",
+    "clarification_router",
     "user_router",
 ]

@@ -59,11 +59,15 @@ def create_review(
     token_payload: dict = Depends(verify_token),
     db: Session = Depends(get_db),
 ):
-    review = ReviewService.create(
+    review, notify_result = ReviewService.create(
         db, body.product_id, body.product_version_id, _uid(token_payload),
         body.title, body.notes, request=request,
     )
-    return APIResponse(success=True, data=serialize(review), message="Review created")
+    return APIResponse(
+        success=True,
+        data={**serialize(review), "email_notification": notify_result},
+        message="Review created",
+    )
 
 
 @router.get("", response_model=APIResponse)
@@ -171,3 +175,27 @@ def archive_review(
 ):
     review = ReviewService.archive(db, review_id, _uid(token_payload), request=request)
     return APIResponse(success=True, data=serialize(review), message="Review archived")
+
+
+@router.post("/{review_id}/notify", response_model=APIResponse)
+def notify_review_desk(
+    review_id: int,
+    token_payload: dict = Depends(verify_token),
+    db: Session = Depends(get_db),
+):
+    """(Re)send the review-desk notification email for a review.
+
+    Best-effort: the response reports ``email_notification: {sent, reason}``
+    honestly - unconfigured SMTP or a send failure never fails this call.
+    """
+    result = ReviewService.notify(db, review_id, _uid(token_payload))
+    review = ReviewService.get(db, review_id, _uid(token_payload))
+    return APIResponse(
+        success=True,
+        data={**serialize(review), "email_notification": result},
+        message=(
+            "Notification email sent to the review desk"
+            if result["sent"]
+            else f"Notification email not sent ({result['reason']})"
+        ),
+    )

@@ -34,6 +34,10 @@ from app.routers import (
     admin_router,
     bhashini_router,
     source_router,
+    sources_registry_router,
+    privacy_router,
+    graph_router,
+    clarification_router,
     user_router,
 )
 
@@ -92,6 +96,10 @@ app.include_router(audit_router)
 app.include_router(admin_router)
 app.include_router(bhashini_router)
 app.include_router(source_router)
+app.include_router(sources_registry_router)
+app.include_router(privacy_router)
+app.include_router(graph_router)
+app.include_router(clarification_router)
 app.include_router(user_router)
 
 

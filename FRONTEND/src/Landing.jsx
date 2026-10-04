@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import ProtectionTimeline from "./ProtectionTimeline.jsx";
 
 const CSS = `
-.lp { background: #FAF5EC; color: #1C2420; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; text-align: left; width: 100vw; margin-left: calc(50% - 50vw); position: relative; overflow-x: clip; }
+.lp { background: #FAF5EC; color: #1C2420; font-family: "Times New Roman", Times, serif; text-align: left; width: 100vw; margin-left: calc(50% - 50vw); position: relative; overflow-x: clip; }
 .lp h1, .lp h2, .lp h3 { color: #1C2420; }
 .lp p { margin: 0; }
 .lp .lp-band h2 { color: #F2ECDF; }
@@ -12,7 +12,7 @@ const CSS = `
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0.35 0 0 0 0 0.32 0 0 0 0 0.27 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 .lp > * { position: relative; z-index: 1; }
-.lp-serif { font-family: Georgia, "Palatino Linotype", "Times New Roman", serif; }
+.lp-serif { font-family: "Times New Roman", Times, serif; }
 .lp-wrap { max-width: 1200px; margin: 0 auto; padding: 0 32px; }
 .lp-nav { position: sticky; top: 0; z-index: 20; background: #FAF5EC; border-bottom: 1px solid #E4DACA; }
 .lp-nav-inner { display: flex; align-items: center; justify-content: space-between; height: 64px; }

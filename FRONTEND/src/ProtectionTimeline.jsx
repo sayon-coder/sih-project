@@ -78,7 +78,7 @@ export default function ProtectionTimeline() {
           <TimelineColumn title="WITH IP-SAKTI SAHAYAK" headerColor="#15803d" events={RIGHT_EVENTS} baseDelay={200} />
         </div>
       )}
-      <p style={{ textAlign: "center", fontFamily: "Georgia, \"Palatino Linotype\", \"Times New Roman\", serif", fontWeight: 600, fontSize: "19px", lineHeight: 1.4, color: "#1C2420", margin: "28px 0 16px" }}>
+      <p style={{ textAlign: "center", fontFamily: "\"Times New Roman\", Times, serif", fontWeight: 600, fontSize: "19px", lineHeight: 1.4, color: "#1C2420", margin: "28px 0 16px" }}>
         Every other tool responds after you have a problem. IP-SAKTI Sahayak protects you before the problem can occur.
       </p>
     </div>

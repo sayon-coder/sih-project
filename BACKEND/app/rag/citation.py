@@ -97,6 +97,8 @@ def validate_citations(
 
         valid.append(citation)
 
+    _attach_confidence(valid, chunk_by_id)
+
     if not valid:
         all_valid = False
 
@@ -106,6 +108,40 @@ def validate_citations(
         len(answer_citations),
     )
     return all_valid, valid
+
+
+#: Confidence tier cut-offs on the batch-relative score (see below).
+HIGH_CUTOFF = 0.66
+MEDIUM_CUTOFF = 0.33
+
+
+def _attach_confidence(
+    citations: List[CitationObject],
+    chunk_by_id: Dict[int, RetrievedChunk],
+) -> None:
+    """Stamp the SIH confidence indicator on validated citations.
+
+    Raw retrieval scores are uncalibrated (cross-encoder logits or RRF
+    sums), so they are min-max normalised across the cited chunks of THIS
+    answer only: ``confidence_score`` is the relative match strength in
+    [0, 1] and the label tiers it. A single citation (or a zero spread) is
+    the best evidence available for its answer, hence HIGH. The score is
+    deliberately NOT a probability and is NOT comparable across answers.
+    """
+    if not citations:
+        return
+    raw = [chunk_by_id[c.chunk_id].final_score for c in citations]
+    lo, hi = min(raw), max(raw)
+    span = hi - lo
+    for citation, score in zip(citations, raw):
+        norm = 1.0 if span <= 0 else (score - lo) / span
+        norm = round(max(0.0, min(1.0, norm)), 3)
+        citation.confidence_score = norm
+        citation.confidence_label = (
+            "HIGH" if norm >= HIGH_CUTOFF
+            else "MEDIUM" if norm >= MEDIUM_CUTOFF
+            else "LOW"
+        )
 
 
 def _titles_match(cited_title: str, real_title: str) -> bool:

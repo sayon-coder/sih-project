@@ -19,6 +19,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+from pathlib import Path
 from typing import Optional
 
 from sqlalchemy import text
@@ -51,6 +52,32 @@ def compute_text_hash(text_value: str) -> str:
     return hashlib.sha256(text_value.encode("utf-8")).hexdigest()
 
 
+def _resolve_local_file(doc: SourceDocument) -> Optional[str]:
+    """Filesystem path backing a SourceDocument row, or None.
+
+    Rows registered on another checkout carry absolute ``file_path`` values
+    that do not exist on this machine. Fall back to a same-named file in the
+    shared ``corpus/`` directory next to this backend. The row itself is
+    never rewritten: machine-local paths stay out of the shared database.
+    """
+    stored = (doc.file_path or "").strip()
+    if stored and Path(stored).is_file():
+        return stored
+    if stored:
+        candidate = (
+            Path(__file__).resolve().parents[2] / "corpus" / Path(stored).name
+        )
+        if candidate.is_file():
+            logger.info(
+                "Document %s: stored path %r is missing here; using local %s",
+                doc.id,
+                stored,
+                candidate.name,
+            )
+            return str(candidate)
+    return None
+
+
 def provenance_for_document(doc: SourceDocument) -> str:
     """Provenance label for chunks of a document (spec vocabulary)."""
     if (doc.source_type or "").upper() == "EXPERT_VERIFIED":
@@ -80,8 +107,9 @@ def ingest_document(db: Session, document_id: int) -> SourceDocument:
     doc = db.get(SourceDocument, document_id)
     if doc is None:
         raise ValueError(f"SourceDocument {document_id} not found")
-    if not doc.file_path:
-        raise ValueError(f"SourceDocument {document_id} has no file_path set")
+    file_path = _resolve_local_file(doc)
+    if not file_path:
+        raise ValueError(f"SourceDocument {document_id} has no file on disk")
 
     # Mark as in-progress
     doc.status = "INDEXING"
@@ -89,8 +117,10 @@ def ingest_document(db: Session, document_id: int) -> SourceDocument:
 
     try:
         logger.info("Ingesting document %d: '%s'", document_id, doc.title)
-        parsed = parse_document(doc.file_path)
-        return store_parsed_chunks(db, doc, parsed)
+        parsed = parse_document(file_path)
+        store_parsed_chunks(db, doc, parsed)
+        db.refresh(doc)
+        return doc
     except Exception as exc:
         logger.error("Ingestion failed for document %d: %s", document_id, exc, exc_info=True)
         try:

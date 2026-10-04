@@ -32,7 +32,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from app.agents.orchestrator import AgentResult, run_agent
+from app.agents.orchestrator import AgentResult, AgentRun, run_agent
 from app.agents.tools import tool_catalog
 from app.database import get_db
 from app.graph.builder import build_or_refresh_graph
@@ -312,8 +312,6 @@ def list_traces(
     current_user: User = Depends(get_current_user_model),
 ) -> APIResponse:
     """The caller's persisted agent runs, newest first."""
-    from app.agents.orchestrator import AgentRun
-
     runs = (
         db.query(AgentRun)
         .filter(AgentRun.user_id == current_user.id)
@@ -334,8 +332,6 @@ def get_trace(
     current_user: User = Depends(get_current_user_model),
 ) -> APIResponse:
     """One stored run with its full plan, tool trace and graph paths."""
-    from app.agents.orchestrator import AgentRun
-
     run = db.get(AgentRun, run_id)
     if run is None or run.user_id != current_user.id:
         # Same rule as the rest of the API: never confirm another user's rows.

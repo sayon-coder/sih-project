@@ -408,7 +408,9 @@ const api = {
   reviewDetail: (accessToken, id) => authFetch(`/reviews/${id}`, { accessToken }),
   reviewAction: (accessToken, id, action, body = {}) =>
     authFetch(`/reviews/${id}/${action}`, { accessToken, method: "POST", body }),
-  // ---- Phase 10: dashboard & audit ----
+  notifyReview: (accessToken, id) =>
+    authFetch(`/reviews/${id}/notify`, { accessToken, method: "POST", body: {} }),
+  // ---- Phase 10: home stat tiles & audit (backend /dashboard endpoint reused by Home) ----
   dashboard: (accessToken) => authFetch("/dashboard", { accessToken }),
   auditTrail: (accessToken) => authFetch("/audit", { accessToken }),
   // ---- Phase 11: BHASHINI ----
@@ -417,6 +419,49 @@ const api = {
     authFetch("/bhashini/detect", { accessToken, method: "POST", body: { text } }),
   bhashiniTranslate: (accessToken, body) =>
     authFetch("/bhashini/translate", { accessToken, method: "POST", body }),
+  // ---- Clarifications (interactive classification loop) ----
+  clarificationQuestions: (accessToken, product_id, version_id) =>
+    authFetch(`/products/${product_id}/versions/${version_id}/clarification-questions`, {
+      accessToken,
+    }),
+  answerClarification: (accessToken, product_id, version_id, body) =>
+    authFetch(`/products/${product_id}/versions/${version_id}/clarifications`, {
+      accessToken, method: "POST", body,
+    }),
+  // ---- Official sources registry + DPDP privacy ----
+  officialSources: (accessToken, params = "") =>
+    authFetch(`/official-sources${params}`, { accessToken }),
+  officialSourceTopics: (accessToken) =>
+    authFetch("/official-sources/topics", { accessToken }),
+  officialSourceDetail: (accessToken, source_id) =>
+    authFetch(`/official-sources/${encodeURIComponent(source_id)}`, { accessToken }),
+  privacyNotice: (accessToken) => authFetch("/privacy/notice", { accessToken }),
+  privacyConsents: (accessToken) => authFetch("/privacy/consent", { accessToken }),
+  grantPrivacyConsent: (accessToken, body) =>
+    authFetch("/privacy/consent", { accessToken, method: "POST", body }),
+  grantSourceConsent: (accessToken, body) =>
+    authFetch("/privacy/sources/consent", { accessToken, method: "POST", body }),
+  revokeSourceConsent: (accessToken, consent_id) =>
+    authFetch(`/privacy/sources/consent/${consent_id}`, { accessToken, method: "DELETE" }),
+  requestSourceAccess: (accessToken, source_id) =>
+    authFetch("/privacy/sources/access", { accessToken, method: "POST", body: { source_id } }),
+  // ---- Knowledge graph + agent ----
+  graphBuild: (accessToken, full = false) =>
+    authFetch("/graph/build", { accessToken, method: "POST", body: { full } }),
+  graphNodes: (accessToken, params = "") =>
+    authFetch(`/graph/nodes${params}`, { accessToken }),
+  graphNodeDetail: (accessToken, node_id) =>
+    authFetch(`/graph/nodes/${node_id}`, { accessToken }),
+  graphPaths: (accessToken, from, to) =>
+    authFetch(`/graph/paths?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`, {
+      accessToken,
+    }),
+  agentTools: (accessToken) => authFetch("/agent/tools", { accessToken }),
+  agentRun: (accessToken, body) =>
+    authFetch("/agent/run", { accessToken, method: "POST", body }),
+  agentTraces: (accessToken) => authFetch("/agent/traces", { accessToken }),
+  agentTraceDetail: (accessToken, run_id) =>
+    authFetch(`/agent/traces/${run_id}`, { accessToken }),
 };
 
 // ---- Auth context --------------------------------------------------------
@@ -574,14 +619,14 @@ function ProtectedRoute({ children }) {
 // ---- Shared UI -----------------------------------------------------------
 
 const AUTH_CSS = `
-.auth-lp { background: #FAF5EC; color: #1C2420; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; text-align: left; width: 100vw; margin-left: calc(50% - 50vw); min-height: 100svh; display: flex; flex-direction: column; }
+.auth-lp { background: #FAF5EC; color: #1C2420; font-family: "Times New Roman", Times, serif; text-align: left; width: 100vw; margin-left: calc(50% - 50vw); min-height: 100svh; display: flex; flex-direction: column; }
 .auth-lp h1, .auth-lp h2, .auth-lp p { color: #1C2420; margin: 0; }
 .auth-lp-top { max-width: 1200px; margin: 0 auto; padding: 0 32px; width: 100%; box-sizing: border-box; }
 .auth-lp-nav { display: flex; align-items: center; justify-content: space-between; height: 64px; border-bottom: 1px solid #E4DACA; }
 .auth-lp-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: #1C2420; font-weight: 700; }
 .auth-lp-main { flex: 1; display: flex; align-items: center; justify-content: center; padding: 56px 24px; }
 .auth-lp-card { background: #FFFDF8; border: 1px solid #E4DACA; border-radius: 10px; padding: 40px; width: 100%; max-width: 440px; box-shadow: 0 12px 32px -16px rgba(30,58,47,0.25); }
-.auth-lp-card h1 { font-family: Georgia, "Palatino Linotype", "Times New Roman", serif; font-weight: 400; font-size: 32px; letter-spacing: -0.01em; margin: 0 0 8px; }
+.auth-lp-card h1 { font-family: "Times New Roman", Times, serif; font-weight: 400; font-size: 32px; letter-spacing: -0.01em; margin: 0 0 8px; }
 .auth-lp-sub { font-size: 15px; line-height: 1.6; color: #43524A; margin: 0 0 28px; }
 .auth-lp-field { margin-bottom: 18px; }
 .auth-lp-field label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 6px; }
@@ -862,8 +907,8 @@ function Layout() {
     ["/knowledge", "Knowledge Base", "M4 19.5A2.5 2.5 0 0 1 6.5 17H20V4H6.5A2.5 2.5 0 0 0 4 6.5v13zM4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"],
     ["/chat", "Chatbot", "M21 12a8 8 0 0 1-8 8H5l-2 2V12a8 8 0 0 1 8-8h2a8 8 0 0 1 8 8z"],
     ["/reviews", "Reviews", "M9 12l2 2 4-4M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z"],
-    ["/dashboard", "Dashboard", "M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z"],
     ["/overview", "Overall Product View", "M4 6h16M4 12h16M4 18h9"],
+    ["/graph", "Knowledge Graph", "M12 2l9 5-9 5-9-5 9-5zM3 12l9 5 9-5M3 17l9 5 9-5"],
   ];
   return (
     <div className="layout">
@@ -914,9 +959,9 @@ function Layout() {
           <Route path="/knowledge" element={<KnowledgeBase />} />
           <Route path="/chat" element={<ChatAssistant />} />
           <Route path="/reviews" element={<Reviews />} />
-          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/overview" element={<OverallProductView />} />
           <Route path="/overview/:id/:versionId" element={<OverallProductView />} />
+          <Route path="/graph" element={<GraphPage />} />
           <Route path="/demo" element={<Navigate to="/overview" replace />} />
         </Routes>
       </main>
@@ -927,12 +972,12 @@ function Layout() {
 }
 
 const HM_CSS = `
-.hm { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; color: #1C2420; text-align: left; width: 100%; max-width: 100%; margin: 0; background: #FAF5EC; position: relative; }
+.hm { font-family: "Times New Roman", Times, serif; color: #1C2420; text-align: left; width: 100%; max-width: 100%; margin: 0; background: #FAF5EC; position: relative; }
 .hm h1, .hm h2, .hm p { margin: 0; }
 .hm-inner { max-width: 1200px; margin: 0 auto; padding: 0 0 56px; }
 .hm-top { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; flex-wrap: wrap; padding: 48px 0 8px; }
 .hm-eyebrow { font-size: 12px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: #6B5E43; margin: 0 0 20px; }
-.hm-h1 { font-family: Georgia, "Palatino Linotype", "Times New Roman", serif; font-weight: 400; font-size: clamp(32px, 3.8vw, 48px); line-height: 1.18; letter-spacing: -0.01em; color: #1C2420; margin: 0 0 18px; }
+.hm-h1 { font-family: "Times New Roman", Times, serif; font-weight: 400; font-size: clamp(32px, 3.8vw, 48px); line-height: 1.18; letter-spacing: -0.01em; color: #1C2420; margin: 0 0 18px; }
 .hm-date { font-size: 14px; color: #6B7280; margin-top: 0; margin-bottom: 10px; }
 .hm-cta { display: inline-flex; align-items: center; gap: 8px; min-height: 46px; padding: 0 26px; border-radius: 999px; background: #1E3A2F; color: #FAF5EC; font-size: 15px; font-weight: 700; text-decoration: none; border: 1px solid #1E3A2F; }
 .hm-cta:hover { background: #152A22; }
@@ -956,16 +1001,15 @@ const HM_CSS = `
 .hm-act b { font-size: 14px; display: block; color: #1C2420; }
 .hm-act span { font-size: 12.5px; color: #6B7280; display: block; margin-top: 2px; line-height: 1.5; }
 .hm a:focus-visible, .hm-cta:focus-visible { outline: 3px solid #B98A2F; outline-offset: 2px; }
-@media (max-width: 900px) { .hm-stats { grid-template-columns: repeat(2, 1fr); } .hm-cols { grid-template-columns: 1fr; } }
+.hm-top.hm-hero { position: relative; overflow: hidden; background: linear-gradient(120deg, #F1E8D2 0%, #FAF5EC 55%, #E4ECE1 100%); border: 1px solid #E7DFCE; border-radius: 14px; padding: 40px 36px; margin-top: 32px; }
+.hm-leaf { position: absolute; right: -34px; top: -34px; width: 230px; height: 230px; opacity: 0.12; pointer-events: none; }
+.hm-attention { margin: 20px 0 0; padding: 12px 18px; background: #FFFDF8; border: 1px solid #E7DFCE; border-left: 4px solid #B98A2F; border-radius: 0 10px 10px 0; font-size: 14.5px; color: #1C2420; }
+.hm-feed { display: flex; flex-direction: column; }
+.hm-feed .row-item { display: flex; align-items: center; gap: 10px; padding: 12px 0; border-top: 1px solid #F0EAD9; font-size: 13.5px; color: #1C2420; }
+.hm-feed .row-item:first-child { border-top: none; }
+.hm-feed .row-meta { margin-left: auto; color: #6B7280; font-size: 12.5px; white-space: nowrap; }
+@media (max-width: 900px) { .hm-stats { grid-template-columns: repeat(2, 1fr); } .hm-cols { grid-template-columns: 1fr; } .hm-top.hm-hero { padding: 28px 22px; } .hm-leaf { width: 150px; height: 150px; } }
 `;
-function HmIcon({ d }) {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1E3A2F" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d={d} />
-    </svg>
-  );
-}
-
 function Home() {
   const { accessToken, user } = useAuth();
   const [stats, setStats] = useState(null);
@@ -989,12 +1033,22 @@ function Home() {
     [stats?.pending_reviews ?? "–", "Reviews awaiting action"],
     [stats?.claims_needing_evidence ?? "–", "Claims needing evidence"],
   ];
+  const needs = [];
+  if ((stats?.claims_needing_evidence ?? 0) > 0) needs.push(`${stats.claims_needing_evidence} claim${stats.claims_needing_evidence === 1 ? "" : "s"} needing evidence`);
+  if ((stats?.pending_reviews ?? 0) > 0) needs.push(`${stats.pending_reviews} review${stats.pending_reviews === 1 ? "" : "s"} awaiting action`);
+  const attention = needs.length > 0 ? `Needs attention: ${needs.join(" · ")}.` : null;
+  const feed = (stats?.recent_activity || []).slice(0, 5);
 
   return (
     <div className="hm">
       <style>{HM_CSS}</style>
       <div className="hm-inner">
-      <div className="hm-top">
+      <div className="hm-top hm-hero">
+        <svg className="hm-leaf" viewBox="0 0 26 26" fill="none" aria-hidden="true">
+          <circle cx="13" cy="13" r="12" stroke="#1E3A2F" strokeWidth="1" />
+          <path d="M13 19 C13 13 13 9 19 6 C19 12 17 17 13 19 Z" fill="#1E3A2F" />
+          <path d="M13 19 C13 14 11 11 7 10 C8 14 10 17 13 19 Z" fill="#B98A2F" />
+        </svg>
         <div>
           <p className="hm-eyebrow">Workspace</p>
           <h1 className="hm-h1">{greeting}.</h1>
@@ -1002,6 +1056,7 @@ function Home() {
         </div>
         <Link to="/products/new" className="hm-cta">+ New product</Link>
       </div>
+      {attention && <p className="hm-attention">{attention}</p>}
 
       <div className="hm-stats">
         {tiles.map(([v, l]) => (
@@ -1022,25 +1077,21 @@ function Home() {
           ))}
         </div>
         <div className="hm-panel">
-          <h2>Start something</h2>
-          <p className="sub">The four moves that matter.</p>
-          <div className="hm-actions">
-            <Link to="/products/new" className="hm-act">
-              <HmIcon d="M12 5v14M5 12h14" />
-              <div><b>New passport</b><span>Record a product and its first version.</span></div>
-            </Link>
-            <Link to="/chat" className="hm-act">
-              <HmIcon d="M21 12a8 8 0 0 1-8 8H5l-2 2V12a8 8 0 0 1 8-8h2a8 8 0 0 1 8 8z" />
-              <div><b>Ask IP-SAKTI</b><span>Cited answers, grounded in your passport.</span></div>
-            </Link>
-            <Link to="/knowledge" className="hm-act">
-              <HmIcon d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V4H6.5A2.5 2.5 0 0 0 4 6.5v13zM4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5" />
-              <div><b>Knowledge base</b><span>Corpus documents and your uploads.</span></div>
-            </Link>
-            <Link to="/overview" className="hm-act">
-              <HmIcon d="M4 6h16M4 12h16M4 18h9" />
-              <div><b>Overall product view</b><span>Readiness, evidence and review status for one version.</span></div>
-            </Link>
+          <h2>Recent activity</h2>
+          <p className="sub">Latest moves across your workspace.</p>
+          {stats && feed.length === 0 && <p className="hm-empty">Nothing recorded yet — activity appears here as you work.</p>}
+          <div className="hm-feed">
+            {feed.map((a) => (
+              <div className="row-item" key={a.id}>
+                <Badge text={a.action} />
+                <span>{prettify(a.resource)} #{a.resource_id}</span>
+                {a.timestamp && (
+                  <span className="row-meta">
+                    {new Date(a.timestamp).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                  </span>
+                )}
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -1057,7 +1108,7 @@ const PL_CSS = `
   .pl-item { display: flex; align-items: center; gap: 18px; padding: 17px 4px; border-top: 1px solid #F0EAD9; transition: background 160ms ease; border-radius: 6px; }
   .pl-item:first-child { border-top: none; }
   .pl-item:hover { background: #FAF7EF; }
-  .pl-mark { width: 44px; height: 44px; border-radius: 50%; background: #FAF5EC; border: 1px solid #E4DACA; color: #1E3A2F; font-family: Georgia, "Palatino Linotype", "Times New Roman", serif; font-size: 18px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; text-transform: uppercase; }
+  .pl-mark { width: 44px; height: 44px; border-radius: 50%; background: #FAF5EC; border: 1px solid #E4DACA; color: #1E3A2F; font-family: "Times New Roman", Times, serif; font-size: 18px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; text-transform: uppercase; }
   .pl-body { flex: 1; min-width: 0; }
   .pl-name { display: block; font-size: 15px; font-weight: 600; color: #1C2420; line-height: 1.4; }
   .pl-desc { margin: 4px 0 0; font-size: 13.5px; color: #5B6670; line-height: 1.5; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; }
@@ -1099,19 +1150,9 @@ function Products() {
   return (
     <div className="pl">
       <style>{PL_CSS}</style>
-      <header className="pg-head">
-        <p className="pg-eyebrow">Product passport</p>
-        <div className="pl-title">
-          <div>
-            <h1 className="pg-h1">Products</h1>
-            <p className="pg-sub">
-              Every product carries an immutable, hash-verified version history —
-              ingredients, claims, evidence and analyses all live under it.
-            </p>
-          </div>
-          <Button onClick={() => navigate("/products/new")}>New product</Button>
-        </div>
-      </header>
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "12px" }}>
+        <Button onClick={() => navigate("/products/new")}>New product</Button>
+      </div>
 
       <div className="card pl-card">
         {error && <p className="form-error pl-error">{error}</p>}
@@ -1315,11 +1356,11 @@ const VR_CSS = `
   .vr-item { display: flex; align-items: center; gap: 16px; padding: 15px 2px; border-top: 1px solid #F0EAD9; transition: background 160ms ease; border-radius: 6px; }
   .vr-item:first-child { border-top: none; }
   .vr-item:hover { background: #FAF7EF; }
-  .vr-num { font-family: Georgia, "Palatino Linotype", "Times New Roman", serif; font-size: 21px; color: #1E3A2F; min-width: 52px; flex-shrink: 0; }
+  .vr-num { font-family: "Times New Roman", Times, serif; font-size: 21px; color: #1E3A2F; min-width: 52px; flex-shrink: 0; }
   .vr-body { flex: 1; min-width: 0; }
   .vr-reason { margin: 0; font-size: 14.5px; font-weight: 600; color: #1C2420; line-height: 1.4; }
   .vr-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin-top: 5px; font-size: 12.5px; color: #6B7280; }
-  .vr-hash { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: #6B5E43; }
+  .vr-hash { font-family: "Times New Roman", Times, serif; color: #6B5E43; }
   .vr-tag { display: inline-block; padding: 2px 9px; border-radius: 999px; background: #1E3A2F; color: #FAF5EC; font-size: 9.5px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; }
   .vr-open { flex-shrink: 0; border: 1px solid #E4DACA; background: #FFFDF8; color: #1E3A2F; font-size: 13px; font-weight: 700; padding: 8px 17px; border-radius: 999px; cursor: pointer; transition: border-color 160ms ease, background 160ms ease, transform 160ms ease; }
   .vr-open:hover { border-color: #1E3A2F; background: #F5EEDF; transform: translateY(-1px); }
@@ -1781,7 +1822,7 @@ const VD_CSS = `
   .vd-title + .pg-sub { margin-top: 10px; }
   .vd-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-top: 14px; }
   .vd-date { font-size: 12.5px; font-weight: 600; color: #6B7280; }
-  .vd-hash { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; color: #6B5E43; background: #F3ECDC; border: 1px solid #E7DFCE; border-radius: 7px; padding: 5px 11px; word-break: break-all; max-width: 100%; }
+  .vd-hash { font-family: "Times New Roman", Times, serif; font-size: 12px; color: #6B5E43; background: #F3ECDC; border: 1px solid #E7DFCE; border-radius: 7px; padding: 5px 11px; word-break: break-all; max-width: 100%; }
   .vd-card { padding-top: 10px; }
   .vd .section { border-top: 1px solid #F0EAD9; padding: 24px 0; }
   .vd-card > .section:first-child { border-top: none; padding-top: 6px; }
@@ -2127,6 +2168,12 @@ function VersionDetail() {
           )}
         </Section>
 
+        <ClarificationsSection
+          accessToken={accessToken}
+          productId={Number(id)}
+          versionId={Number(versionId)}
+        />
+
         <AnalysisSection
           accessToken={accessToken}
           productId={Number(id)}
@@ -2154,6 +2201,82 @@ function VersionDetail() {
         />
       </div>
     </div>
+  );
+}
+
+// ---- Clarifying questions (interactive classification loop) -----------------
+
+function ClarificationsSection({ accessToken, productId, versionId }) {
+  const toast = useToast();
+  const [questions, setQuestions] = useState([]);
+  const [answered, setAnswered] = useState(0);
+  const [drafts, setDrafts] = useState({});
+  const [busy, setBusy] = useState(null);
+  const [error, setError] = useState(null);
+
+  const load = useCallback(async () => {
+    try {
+      const res = await api.clarificationQuestions(accessToken, productId, versionId);
+      setQuestions(res.data?.questions || []);
+      setAnswered(res.data?.answered || 0);
+    } catch { setQuestions([]); }
+  }, [accessToken, productId, versionId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const submit = async (key) => {
+    const text = (drafts[key] || "").trim();
+    if (!text) { setError("Write an answer before recording it."); return; }
+    setBusy(key); setError(null);
+    try {
+      await api.answerClarification(accessToken, productId, versionId, {
+        question_key: key, answer: text,
+      });
+      setDrafts((d) => ({ ...d, [key]: "" }));
+      toast("Answer recorded (passport content unchanged)");
+      await load();
+    } catch (err) { setError(err.message); } finally { setBusy(null); }
+  };
+
+  if (questions.length === 0) return null;
+
+  return (
+    <Section title={`Clarifying questions (${answered}/${questions.length} answered)`}>
+      <p className="muted" style={{ marginTop: 0 }}>
+        The minimum questions needed to classify this formulation. Answering records
+        an advisory note — record the facts themselves in the passport editors above,
+        then re-run analysis.
+      </p>
+      <ul className="list">
+        {questions.map((q) => (
+          <li key={q.question_key} className="list-item" style={{ alignItems: "flex-start" }}>
+            <div className="item-body">
+              <strong>{q.question_text}</strong>
+              <div className="badge-row">
+                <Badge text={q.answered ? "answered" : "open"} />
+                <Badge text={`record in: ${q.destination?.section || "passport"}`} />
+              </div>
+              {q.destination?.hint && <p className="muted">{q.destination.hint}</p>}
+              {q.answered && q.answer && (
+                <p><em>Recorded answer:</em> {q.answer}</p>
+              )}
+              <div style={{ display: "flex", gap: "8px", marginTop: "6px" }}>
+                <input
+                  placeholder={q.answered ? "Update the recorded answer…" : "Type your answer…"}
+                  value={drafts[q.question_key] || ""}
+                  onChange={(e) => setDrafts((d) => ({ ...d, [q.question_key]: e.target.value }))}
+                  style={{ flex: 1, minWidth: "200px" }}
+                />
+                <Button variant="small" disabled={busy === q.question_key} onClick={() => submit(q.question_key)}>
+                  {busy === q.question_key ? "Saving…" : q.answered ? "Update" : "Record"}
+                </Button>
+              </div>
+            </div>
+          </li>
+        ))}
+      </ul>
+      {error && <FormError message={error} />}
+    </Section>
   );
 }
 
@@ -3534,7 +3657,7 @@ function AddTargetMarketForm({ accessToken, productId, versionId, setTargetMarke
 }
 
 // ==========================================================================
-// Phases 8-10: Disclosures, Reports, Reviews, Dashboard
+// Phases 8-10: Disclosures, Reports, Reviews
 // ==========================================================================
 
 const DISCLOSURE_TYPES = [
@@ -3671,9 +3794,13 @@ function Reviews() {
   const [reviews, setReviews] = useState([]);
   const [selected, setSelected] = useState(null);
   const [products, setProducts] = useState([]);
-  const [form, setForm] = useState({ product_id: "", product_version_id: "", title: "" });
+  const [versions, setVersions] = useState([]);
+  const [form, setForm] = useState({ product_id: "", product_version_id: "", title: "", notes: "" });
+  const [sent, setSent] = useState(null);
   const [comment, setComment] = useState("");
   const [error, setError] = useState(null);
+  const [mailResult, setMailResult] = useState(null);
+  const [mailing, setMailing] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -3689,8 +3816,31 @@ function Reviews() {
     })();
   }, [load, accessToken]);
 
+  // Versions belong to the selected product: offer them by version number so
+  // the caller never has to guess a database id (a bare "1" 404s).
+  // The render-guard below (not an effect) also resyncs when the selected
+  // product arrives without going through the picker, e.g. state preserved
+  // across a hot reload.
+  const [versionsFor, setVersionsFor] = useState(null);
+  const loadVersions = (pid) => {
+    if (!pid) { setVersions([]); return; }
+    api.versions(accessToken, pid).then(
+      (res) => setVersions(res.data || []),
+      () => setVersions([])
+    );
+  };
+  if (form.product_id && versionsFor !== form.product_id) {
+    setVersionsFor(form.product_id);
+    loadVersions(form.product_id);
+  }
+  const pickProduct = (pid) => {
+    setForm({ product_id: pid, product_version_id: "", title: form.title });
+    setVersionsFor(pid || null);
+    loadVersions(pid);
+  };
+
   const open = async (id) => {
-    try { setSelected((await api.reviewDetail(accessToken, id)).data); }
+    try { setSelected((await api.reviewDetail(accessToken, id)).data); setMailResult(null); }
     catch (err) { setError(err.message); }
   };
 
@@ -3704,43 +3854,95 @@ function Reviews() {
     } catch (err) { setError(err.message); }
   };
 
-  const create = async (e) => {
-    e.preventDefault(); setError(null);
+  const notify = async () => {
+    if (!selected || mailing) return;
+    setError(null); setMailResult(null); setMailing(true);
     try {
-      await api.createReview(accessToken, {
+      const res = await api.notifyReview(accessToken, selected.id);
+      const mail = res.data?.email_notification || null;
+      setMailResult(mail);
+      if (mail?.sent) {
+        toast("Notification email sent to the review desk");
+      } else {
+        setError(`Email not sent${mail?.reason ? ` (${mail.reason})` : ""} — configure SMTP in the backend .env to enable email notifications.`);
+      }
+    } catch (err) { setError(err.message); }
+    finally { setMailing(false); }
+  };
+
+  const create = async (e) => {
+    e.preventDefault(); setError(null); setSent(null);
+    try {
+      const created = await api.createReview(accessToken, {
         product_id: Number(form.product_id),
         product_version_id: Number(form.product_version_id),
         title: form.title || undefined,
+        notes: form.notes || undefined,
       });
-      toast("Review requested successfully");
-      setForm({ product_id: "", product_version_id: "", title: "" });
+      // One click genuinely asks for human review: advance the new DRAFT
+      // through AI screening to REVIEW_REQUIRED. Every step is audit-logged;
+      // if a step fails, the reached state is shown honestly instead.
+      let review = created.data;
+      const mail = created.data?.email_notification || null;
+      try {
+        review = (await api.reviewAction(accessToken, review.id, "submit", {})).data;
+        review = (await api.reviewAction(accessToken, review.id, "request-review", {})).data;
+        review = { ...review, email_notification: mail };
+      } catch (advErr) {
+        setError(`Review recorded, but auto-advance stopped at ${review?.status || "DRAFT"}: ${advErr.message}`);
+      }
+      setSent(review);
+      toast("Review sent - waiting for human review");
+      setForm({ product_id: "", product_version_id: "", title: "", notes: "" });
+      setVersions([]); setVersionsFor(null);
       await load();
     } catch (err) { setError(err.message); }
   };
 
   return (
     <div className="page-stack">
-      <header className="pg-head">
-        <p className="pg-eyebrow">Workflow</p>
-        <h1 className="pg-h1">Expert reviews</h1>
-        <p className="pg-sub">
-          Request a review on a product version, follow the discussion, and move it through
-          submission, correction and completion.
-        </p>
-      </header>
       <Card title="Request a review">
         {error && <FormError message={error} />}
+        {sent && (
+          <div className="notice" style={{ marginBottom: "12px" }}>
+            <strong>Review sent — waiting for human review.</strong>{" "}
+            Review #{sent.id}{sent.title ? ` “${sent.title}”` : ""} is now{" "}
+            <strong>{sent.status}</strong>.{" "}
+            {sent.email_notification?.sent ? (
+              <span>A notification email with the request details has been sent to the review desk.</span>
+            ) : (
+              <span>
+                The review-desk email could not be sent
+                {sent.email_notification?.reason ? ` (${sent.email_notification.reason})` : ""} —{" "}
+                the request itself is recorded and waiting; configure SMTP in the backend
+                `.env` to enable email notifications.
+              </span>
+            )}
+          </div>
+        )}
         <form onSubmit={create} className="rv-form">
           <div className="field">
             <label>Product</label>
-            <select value={form.product_id} onChange={(e) => setForm({ ...form, product_id: e.target.value })}>
+            <select value={form.product_id} onChange={(e) => pickProduct(e.target.value)}>
               <option value="">Select a product…</option>
               {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           </div>
           <div className="field">
-            <label>Version ID</label>
-            <input placeholder="e.g. 3" value={form.product_version_id} onChange={(e) => setForm({ ...form, product_version_id: e.target.value })} />
+            <label>Product version</label>
+            <select
+              value={form.product_version_id}
+              onChange={(e) => setForm({ ...form, product_version_id: e.target.value })}
+              disabled={!form.product_id}
+            >
+              <option value="">{form.product_id ? "Select a version…" : "Select a product first…"}</option>
+              {versions.map((v) => (
+                <option key={v.id} value={v.id}>
+                  Version {v.version_number ?? v.id}
+                  {v.content_hash ? ` (${String(v.content_hash).slice(0, 8)}…)` : ""}
+                </option>
+              ))}
+            </select>
           </div>
           <div className="field">
             <label>Title (optional)</label>
@@ -3748,6 +3950,14 @@ function Reviews() {
           </div>
           <div className="field">
             <Button type="submit">Request review</Button>
+          </div>
+          <div className="field" style={{ gridColumn: "1 / -1" }}>
+            <label>What should the reviewer look at? (optional)</label>
+            <input
+              placeholder="e.g. Please check whether my cold-press claim is substantiated…"
+              value={form.notes}
+              onChange={(e) => setForm({ ...form, notes: e.target.value })}
+            />
           </div>
         </form>
         <h3 className="subheading" style={{ marginTop: "22px" }}>Your reviews</h3>
@@ -3794,87 +4004,19 @@ function Reviews() {
             {[["submit", "Submit"], ["request-review", "Request review"], ["request-correction", "Request correction"], ["resubmit", "Resubmit"], ["complete", "Complete"], ["archive", "Archive"]].map(([a, label]) => (
               <Button key={a} variant="small" type="button" onClick={() => act(a)}>{label}</Button>
             ))}
+            <Button variant="small" type="button" onClick={notify} disabled={mailing}>
+              {mailing ? "Emailing…" : "Email reviewer"}
+            </Button>
           </div>
+          {mailResult && (
+            <p className="muted" style={{ marginTop: "8px", fontSize: "13px" }}>
+              {mailResult.sent
+                ? "Notification email with the request details has been sent to the review desk."
+                : `The review-desk email could not be sent${mailResult.reason ? ` (${mailResult.reason})` : ""}.`}
+            </p>
+          )}
         </Card>
       )}
-    </div>
-  );
-}
-
-function Dashboard() {
-  const { accessToken } = useAuth();
-  const [data, setData] = useState(null);
-
-  useEffect(() => {
-    (async () => {
-      try { setData((await api.dashboard(accessToken)).data); }
-      catch { setData(null); }
-    })();
-  }, [accessToken]);
-
-  if (!data) {
-    return (
-      <div className="page-stack">
-        <Loading />
-      </div>
-    );
-  }
-  const tiles = [
-    [data.product_count, "Product passports"],
-    [data.version_count, "Tracked versions"],
-    [data.pending_reviews, "Reviews awaiting action"],
-    [data.analyses_total, "Analyses run"],
-    [data.claims_needing_evidence, "Claims needing evidence"],
-    [data.patent_records, "Patent records"],
-  ];
-  return (
-    <div className="page-stack">
-      <header className="pg-head">
-        <p className="pg-eyebrow">Overview</p>
-        <h1 className="pg-h1">Dashboard</h1>
-        <p className="pg-sub">
-          Everything in your workspace at a glance — passports, versions, reviews and the
-          evidence behind your claims.
-        </p>
-      </header>
-      <div className="dash-stats">
-        {tiles.map(([value, label]) => (
-          <div className="stat-box" key={label}>
-            <strong>{value ?? "—"}</strong>
-            <span>{label}</span>
-          </div>
-        ))}
-      </div>
-      <Card title="Recent disclosures">
-        {(data.recent_disclosures || []).length === 0 ? (
-          <Empty message="No disclosures yet." />
-        ) : (
-          (data.recent_disclosures || []).map((d) => (
-            <div className="row-item" key={d.id}>
-              <span className="row-id">#{d.id}</span>
-              <Badge text={d.disclosure_type} />
-              <span className="row-meta">Version {d.product_version_id}</span>
-            </div>
-          ))
-        )}
-      </Card>
-      <Card title="Recent activity">
-        {(data.recent_activity || []).length === 0 ? (
-          <Empty message="No activity recorded yet." />
-        ) : (
-          (data.recent_activity || []).map((a) => (
-            <div className="row-item" key={a.id}>
-              <Badge text={a.action} />
-              <span>{prettify(a.resource)} #{a.resource_id}</span>
-              {a.timestamp && (
-                <span className="row-meta">
-                  {new Date(a.timestamp).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
-                </span>
-              )}
-            </div>
-          ))
-        )}
-      </Card>
     </div>
   );
 }
@@ -3892,14 +4034,14 @@ function Dashboard() {
 // ==========================================================================
 
 const OV_CSS = `
-  .ov { width: 100%; text-align: left; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; color: #1C2420; }
+  .ov { width: 100%; text-align: left; font-family: "Times New Roman", Times, serif; color: #1C2420; }
   .ov h1, .ov h2, .ov h3, .ov h4, .ov p, .ov dl, .ov dd { margin: 0; }
   .ov-title-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
   .ov-title-row .pg-h1 { margin-bottom: 0; }
   .ov-meta { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-top: 14px; align-items: center; }
   .ov-meta-item { font-size: 12.5px; color: #5B6670; }
   .ov-meta-item b { color: #1C2420; font-size: 14px; }
-  .ov-hash { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; color: #6B5E43; background: #F3ECDC; border: 1px solid #E7DFCE; border-radius: 7px; padding: 4px 10px; cursor: help; max-width: 100%; overflow-wrap: anywhere; }
+  .ov-hash { font-family: "Times New Roman", Times, serif; font-size: 12px; color: #6B5E43; background: #F3ECDC; border: 1px solid #E7DFCE; border-radius: 7px; padding: 4px 10px; cursor: help; max-width: 100%; overflow-wrap: anywhere; }
   .ov-switch { display: inline-flex; align-items: center; gap: 8px; margin-top: 14px; font-size: 13px; font-weight: 600; color: #6B5E43; }
   .ov-switch select { padding: 9px 12px; border: 1px solid #E4DACA; border-radius: 8px; background: #FFFDF8; color: #1C2420; font-size: 14px; }
   .ov-switch select:focus { outline: 2px solid #1E3A2F; outline-offset: 1px; }
@@ -3927,7 +4069,7 @@ const OV_CSS = `
   .ov-alert { background: #FBF2DE; border: 1px solid #EBD9AC; border-radius: 10px; padding: 14px 16px; margin-top: 14px; display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
   .ov-alert p { font-size: 14px; line-height: 1.6; color: #5C470F; }
   .ov-status-top { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; align-items: flex-start; }
-  .ov-status-name { font-family: Georgia, "Palatato Linotype", "Times New Roman", serif; font-weight: 400; font-size: clamp(22px, 2.4vw, 30px); line-height: 1.2; color: #1C2420; margin-top: 6px; overflow-wrap: anywhere; }
+  .ov-status-name { font-family: "Times New Roman", Times, serif; font-weight: 400; font-size: clamp(22px, 2.4vw, 30px); line-height: 1.2; color: #1C2420; margin-top: 6px; overflow-wrap: anywhere; }
   .ov-status-reason { font-size: 14.5px; line-height: 1.65; color: #3F4A44; margin-top: 12px; }
   .ov-status-side { display: flex; gap: 8px; flex-wrap: wrap; }
   .ov-status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 16px; padding-top: 14px; border-top: 1px solid #F0EAD9; }
@@ -4235,20 +4377,13 @@ function OverallProductView() {
 
   const head = (
     <header className="pg-head ov-head">
-      <p className="pg-eyebrow">Product Readiness Overview</p>
       <div className="ov-title-row">
-        <h1 className="pg-h1">Overall Product View</h1>
         {pid && (
           <Link className="btn btn-ghost" to={`/products/${pid}/versions`}>
             All versions
           </Link>
         )}
       </div>
-      <p className="pg-sub">
-        Product evidence and review status for the selected Product Passport version:
-        what is recorded, what is missing, and what still needs professional review.
-        Preliminary decision support only.
-      </p>
       {pid &&
         vid &&
         versions.some((row) => row.id === vid) && (
@@ -5164,24 +5299,10 @@ function KnowledgeBase() {
 
   return (
     <div className="kb">
-      <header className="kb-head">
-        <p className="kb-eyebrow">Corpus library</p>
-        <h1 className="kb-h1">Knowledge base & custom data corpus</h1>
-        <p className="kb-sub">
-          Manage official regulatory sources and upload your own documents (PDF or TXT) for the RAG assistant to cite.
-        </p>
-      </header>
-
       {status && (
         <div className="kb-stats">
           <div className="stat-box">
             <strong>{status.total_documents}</strong> <span>Documents</span>
-          </div>
-          <div className="stat-box">
-            <strong>{status.indexed_documents}</strong> <span>Indexed</span>
-          </div>
-          <div className="stat-box">
-            <strong>{status.total_chunks}</strong> <span>Chunks</span>
           </div>
           <div className="stat-box">
             <strong>{status.public_documents}</strong> <span>Public</span>
@@ -5334,6 +5455,470 @@ function KnowledgeBase() {
           )}
         </Card>
       </div>
+
+      <div style={{ marginTop: "24px" }}>
+        <OfficialSourcesSection accessToken={accessToken} />
+      </div>
+    </div>
+  );
+}
+
+// ---- Authoritative sources registry (SIH: free databases directly,
+// paid subscriptions only with explicit, logged permission) -----------------
+
+function OfficialSourcesSection({ accessToken }) {
+  const toast = useToast();
+  const [entries, setEntries] = useState([]);
+  const [topics, setTopics] = useState([]);
+  const [q, setQ] = useState("");
+  const [topic, setTopic] = useState("");
+  const [access, setAccess] = useState("");
+  const [busy, setBusy] = useState(null);
+  const [error, setError] = useState(null);
+  const [handoff, setHandoff] = useState(null);
+
+  const load = useCallback(async () => {
+    setError(null);
+    try {
+      const params = new URLSearchParams();
+      if (q.trim()) params.set("q", q.trim());
+      if (topic) params.set("topic", topic);
+      if (access) params.set("access", access);
+      const qs = params.toString() ? `?${params.toString()}` : "";
+      const res = await api.officialSources(accessToken, qs);
+      setEntries(res.data?.sources || res.data || []);
+    } catch (err) { setError(err.message); }
+  }, [accessToken, q, topic, access]);
+
+  useEffect(() => {
+    api.officialSourceTopics(accessToken).then(
+      (res) => setTopics(res.data?.topics || res.data || [])
+    ).catch(() => setTopics([]));
+  }, [accessToken]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const grant = async (entry) => {
+    if (!window.confirm(
+      `Grant this platform permission to hand you off to "${entry.title}"?\n\n` +
+      `The permission is logged with a timestamp and can be revoked at any time. ` +
+      `The platform never fetches paid data itself.`
+    )) return;
+    setBusy(entry.id); setError(null); setHandoff(null);
+    try {
+      await api.grantSourceConsent(accessToken, {
+        source_id: entry.id,
+        access_type: entry.access || "PAID_SUBSCRIPTION",
+        scope: ["handoff"],
+        confirm: true,
+      });
+      toast("Permission granted and logged");
+      await load();
+    } catch (err) { setError(err.message); } finally { setBusy(null); }
+  };
+
+  const openViaPermission = async (entry) => {
+    setBusy(entry.id); setError(null); setHandoff(null);
+    try {
+      const res = await api.requestSourceAccess(accessToken, entry.id);
+      setHandoff(res.data);
+    } catch (err) { setError(err.message); } finally { setBusy(null); }
+  };
+
+  return (
+    <Card title="Authoritative sources registry">
+      <p className="muted" style={{ margin: "-8px 0 18px" }}>
+        Free official databases open directly. Paid or restricted sources need your
+        explicit, logged permission first — the platform hands you off and never
+        fetches paid data itself.
+      </p>
+      <div className="kb-toolbar">
+        <input
+          placeholder="Search registries, statutes, treaties…"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          style={{ flex: 1, minWidth: "200px" }}
+        />
+        <select value={topic} onChange={(e) => setTopic(e.target.value)}>
+          <option value="">All topics</option>
+          {topics.map((t) => <option key={t} value={t}>{t}</option>)}
+        </select>
+        <select value={access} onChange={(e) => setAccess(e.target.value)}>
+          <option value="">All access types</option>
+          <option value="FREE">Free</option>
+          <option value="FREE_REGISTRATION">Free registration</option>
+          <option value="PAID_SUBSCRIPTION">Paid subscription</option>
+          <option value="THIRD_PARTY_API">Third-party API</option>
+        </select>
+        <Button variant="small" onClick={load}>Search</Button>
+      </div>
+      {error && <FormError message={error} />}
+      <ul className="list" style={{ marginTop: "12px" }}>
+        {entries.map((s) => (
+          <li key={s.id} className="list-item" style={{ alignItems: "flex-start" }}>
+            <div className="item-body">
+              <strong>{s.title}</strong>
+              <div className="badge-row">
+                {s.jurisdiction && <Badge text={s.jurisdiction} />}
+                {s.ip_type && <Badge text={String(s.ip_type).replace(/_/g, " ")} />}
+                <Badge text={String(s.access || "").replace(/_/g, " ")} />
+                {s.requires_permission && <Badge text="permission required" />}
+              </div>
+              {s.restricted_note && <p className="muted">{s.restricted_note}</p>}
+            </div>
+            <div className="kb-doc-actions">
+              {!s.requires_permission && s.url && (
+                <a className="btn btn-small" href={s.url} target="_blank" rel="noreferrer">Open direct</a>
+              )}
+              {s.requires_permission && (
+                <>
+                  <Button variant="small" disabled={busy === s.id} onClick={() => grant(s)}>
+                    {busy === s.id ? "Saving…" : "Grant permission"}
+                  </Button>
+                  <Button variant="small" disabled={busy === s.id} onClick={() => openViaPermission(s)}>
+                    Open via permission
+                  </Button>
+                </>
+              )}
+            </div>
+          </li>
+        ))}
+        {entries.length === 0 && <li className="muted">No registry entries match.</li>}
+      </ul>
+      {handoff && (
+        <div className="notice" style={{ marginTop: "12px" }}>
+          <strong>Permission verified — handoff issued.</strong>{" "}
+          {handoff.url ? (
+            <a href={handoff.url} target="_blank" rel="noreferrer">Open {handoff.source_title || "the source"} yourself</a>
+          ) : (
+            <span>{handoff.note || "Open the source yourself; access was logged."}</span>
+          )}
+          <div className="muted">Mode: {handoff.mode || "HANDOFF"} · this access was written to your evidence trail.</div>
+        </div>
+      )}
+    </Card>
+  );
+}
+
+// ---- Knowledge graph & agent (relational reasoning) ---------------------------
+
+/**
+ * Radial SVG visualisation of one graph node and its edges.
+ * Clicking a neighbour re-centres the canvas on it. Pure SVG, no library.
+ */
+function GraphCanvas({ detail, colors, onSelect }) {
+  if (!detail || !detail.node) return null;
+  const center = detail.node;
+  const seen = new Map();
+  (detail.edges || []).forEach((e) => {
+    [e.from, e.to].forEach((n) => {
+      if (n && n.id !== center.id && !seen.has(n.id)) seen.set(n.id, n);
+    });
+  });
+  const neighbours = [...seen.values()].slice(0, 14);
+  const W = 640, H = 380, CX = W / 2, CY = H / 2, R = 140;
+  const pos = neighbours.map((n, i) => {
+    const a = (2 * Math.PI * i) / Math.max(neighbours.length, 1) - Math.PI / 2;
+    return { n, x: CX + R * Math.cos(a), y: CY + R * Math.sin(a) };
+  });
+  const edgeFor = (id) =>
+    (detail.edges || []).find(
+      (e) => (e.from && e.from.id === id) || (e.to && e.to.id === id)
+    );
+  const short = (s, n = 22) =>
+    s && s.length > n ? s.slice(0, n - 1) + "…" : (s || "");
+  return (
+    <svg className="gcanvas" viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto", background: "#FDFBF4", border: "1px solid #EFE7D5", borderRadius: "12px" }} role="img" aria-label={`Knowledge graph centred on ${center.canonical_name}`}>
+      {pos.map(({ n, x, y }) => {
+        const e = edgeFor(n.id);
+        return (
+          <g key={n.id} className="sat">
+            <line className="edge-flow" x1={CX} y1={CY} x2={x} y2={y} stroke="#C9BFA6" strokeWidth="1.5" />
+            <text x={(CX + x) / 2} y={(CY + y) / 2 - 6} textAnchor="middle" fontSize="9.5" fill="#6B5E43">
+              {short(e ? e.relation : "", 18)}
+            </text>
+          </g>
+        );
+      })}
+      {pos.map(({ n, x, y }) => (
+        <g key={"n" + n.id} className="node-g sat" onClick={() => onSelect(n.id)}>
+          <circle cx={x} cy={y} r="20" fill={colors[n.node_type] || "#5B6670"} opacity="0.88" />
+          <text x={x} y={y + 34} textAnchor="middle" fontSize="10.5" fill="#1C2420">
+            {short(n.canonical_name)}
+          </text>
+        </g>
+      ))}
+      <circle className="pulse-ring" cx={CX} cy={CY} r="30" fill="none" stroke={colors[center.node_type] || "#1E3A2F"} strokeWidth="2" />
+      <circle cx={CX} cy={CY} r="30" fill={colors[center.node_type] || "#1E3A2F"} />
+      <text x={CX} y={CY + 48} textAnchor="middle" fontSize="12" fontWeight="700" fill="#1C2420">
+        {short(center.canonical_name, 34)}
+      </text>
+      <text x={CX} y={CY + 62} textAnchor="middle" fontSize="10" fill="#6B5E43">
+        {center.node_type} · {detail.edge_count} edge(s)
+      </text>
+    </svg>
+  );
+}
+
+const GRAPH_CSS = `
+.graph-grid { display: grid; grid-template-columns: minmax(300px, 400px) 1fr; gap: 16px; align-items: start; margin-top: 16px; }
+.graph-left { max-height: 600px; overflow-y: auto; padding-right: 4px; }
+.graph-right { position: sticky; top: 12px; }
+.graph-bottom { margin-top: 16px; }
+@media (max-width: 900px) {
+  .graph-grid { grid-template-columns: 1fr; }
+  .graph-right { position: static; }
+  .graph-left { max-height: 320px; }
+}
+.gcanvas .edge-flow { stroke-dasharray: 6 5; animation: gflow 1.2s linear infinite; }
+@keyframes gflow { to { stroke-dashoffset: -11; } }
+.gcanvas .pulse-ring { transform-box: fill-box; transform-origin: center; animation: gpulse 2.4s ease-out infinite; }
+@keyframes gpulse { 0% { transform: scale(1); opacity: 0.55; } 70% { transform: scale(1.9); opacity: 0; } 100% { transform: scale(1.9); opacity: 0; } }
+.gcanvas .sat { animation: gfade 0.45s ease both; }
+@keyframes gfade { from { opacity: 0; } to { opacity: 1; } }
+.gcanvas .node-g { cursor: pointer; }
+.gcanvas .node-g:hover circle { filter: brightness(1.15); }
+`;
+
+const GRAPH_NODE_TYPES = ["STATUTE", "RULE", "TREATY", "IP_TYPE",
+  "FORMULATION_CATEGORY", "PRODUCT", "INGREDIENT", "BOTANICAL_SPECIES",
+  "JURISDICTION", "REGISTRY", "CASE", "OBLIGATION", "REGULATOR",
+  "CORPUS_DOCUMENT"];
+
+function GraphPage() {
+  const { accessToken } = useAuth();
+  const toast = useToast();
+  const [stats, setStats] = useState(null);
+  const [nodes, setNodes] = useState([]);
+  const [q, setQ] = useState("");
+  const [nodeType, setNodeType] = useState("");
+  const [detail, setDetail] = useState(null);
+  const [centerId, setCenterId] = useState(null);
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const [path, setPath] = useState(null);
+  const [pathMsg, setPathMsg] = useState("");
+
+  const NODE_COLORS = {
+    STATUTE: "#1E3A2F", RULE: "#2F6B4F", TREATY: "#3A6EA5",
+    IP_TYPE: "#B98A2F", FORMULATION_CATEGORY: "#7A5B00",
+    PRODUCT: "#6A3FB5", INGREDIENT: "#2E8B57", BOTANICAL_SPECIES: "#4C9A52",
+    JURISDICTION: "#8A2E1F", REGISTRY: "#5B6670", CASE: "#444444",
+    OBLIGATION: "#A34A00", REGULATOR: "#005B70", CORPUS_DOCUMENT: "#888888",
+  };
+  const [agentQ, setAgentQ] = useState("");
+  const [run, setRun] = useState(null);
+  const [traces, setTraces] = useState([]);
+  const [busy, setBusy] = useState(null);
+  const [error, setError] = useState(null);
+
+  const searchNodes = useCallback(async () => {
+    setError(null);
+    try {
+      const params = new URLSearchParams();
+      if (nodeType) params.set("node_type", nodeType);
+      if (q.trim()) params.set("q", q.trim());
+      const res = await api.graphNodes(accessToken, params.toString() ? `?${params.toString()}` : "");
+      const list = res.data?.nodes || [];
+      setNodes(list);
+      // Centre the visualisation on the first node until the user picks one.
+      if (centerId === null && list.length > 0) {
+        try {
+          const first = await api.graphNodeDetail(accessToken, list[0].id);
+          setDetail(first.data);
+          setCenterId(list[0].id);
+        } catch { /* the list still renders below */ }
+      }
+    } catch (err) { setError(err.message); }
+  }, [accessToken, q, nodeType, centerId]);
+
+  useEffect(() => { searchNodes(); }, [searchNodes]);
+
+  const build = async (full) => {
+    setBusy("build"); setError(null);
+    try {
+      const res = await api.graphBuild(accessToken, full);
+      setStats(res.data);
+      toast(full ? "Graph rebuilt from scratch" : "Graph refreshed");
+      await searchNodes();
+    } catch (err) { setError(err.message); } finally { setBusy(null); }
+  };
+
+  const openNode = async (id) => {
+    setError(null);
+    try {
+      const res = await api.graphNodeDetail(accessToken, id);
+      setDetail(res.data);
+      setCenterId(id);
+    } catch (err) { setError(err.message); }
+  };
+
+  const findPath = async (e) => {
+    e.preventDefault();
+    setError(null); setPath(null); setPathMsg("");
+    try {
+      const res = await api.graphPaths(accessToken, from.trim(), to.trim());
+      setPath(res.data?.path || null);
+      setPathMsg(res.data?.path ? "" : (res.message || "No relational path found between those concepts."));
+    } catch (err) { setError(err.message); }
+  };
+
+  const runAgent = async (e) => {
+    e.preventDefault();
+    if (!agentQ.trim()) return;
+    setBusy("agent"); setError(null); setRun(null);
+    try {
+      const res = await api.agentRun(accessToken, { query: agentQ.trim(), max_steps: 5 });
+      setRun(res);
+      const tr = await api.agentTraces(accessToken);
+      setTraces(tr.data?.traces || []);
+    } catch (err) { setError(err.message); } finally { setBusy(null); }
+  };
+
+  useEffect(() => {
+    api.agentTraces(accessToken).then(
+      (res) => setTraces(res.data?.traces || [])
+    ).catch(() => setTraces([]));
+  }, [accessToken]);
+
+  return (
+    <div>
+      <style>{GRAPH_CSS}</style>
+      {error && <FormError message={error} />}
+
+      <Section title="Graph build">
+        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+          <Button variant="small" disabled={busy === "build"} onClick={() => build(false)}>
+            {busy === "build" ? "Building…" : "Build / refresh"}
+          </Button>
+          <Button variant="small" disabled={busy === "build"} onClick={() => build(true)}>
+            Rebuild from scratch
+          </Button>
+        </div>
+        {stats && (
+          <p className="muted">
+            {stats.nodes_total} nodes · {stats.edges_total} edges · {stats.duration_ms} ms
+          </p>
+        )}
+      </Section>
+
+      <div className="graph-grid">
+        <div className="graph-left">
+          <Section title="Browse nodes">
+            <div className="kb-toolbar">
+              <input placeholder="Search node names…" value={q} onChange={(e) => setQ(e.target.value)} style={{ flex: 1, minWidth: "180px" }} />
+              <select value={nodeType} onChange={(e) => setNodeType(e.target.value)}>
+                <option value="">All types</option>
+                {GRAPH_NODE_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+              </select>
+              <Button variant="small" onClick={searchNodes}>Search</Button>
+            </div>
+            <ul className="list">
+              {nodes.map((n) => (
+                <li key={n.id} className="list-item">
+                  <div className="item-body">
+                    <strong>{n.canonical_name}</strong>
+                    <div className="badge-row">
+                      <Badge text={n.node_type} />
+                      {n.jurisdiction && <Badge text={n.jurisdiction} />}
+                    </div>
+                  </div>
+                  <Button variant="small" onClick={() => openNode(n.id)}>Edges</Button>
+                </li>
+              ))}
+              {nodes.length === 0 && <li className="muted">No nodes match.</li>}
+            </ul>
+          </Section>
+        </div>
+        <div className="graph-right">
+          <Section title="Knowledge graph">
+            {detail ? (
+              <>
+                <GraphCanvas detail={detail} colors={NODE_COLORS} onSelect={openNode} />
+                <p className="muted">Click any neighbour to re-centre the graph on it.</p>
+              </>
+            ) : (
+              <p className="muted">Pick a node on the left to draw its neighbourhood.</p>
+            )}
+          </Section>
+        </div>
+      </div>
+
+      <div className="graph-bottom">
+      {detail && (
+        <Section title={`${detail.node?.canonical_name} — ${detail.edge_count} edge(s)`}>
+          <ul className="list">
+            {(detail.edges || []).map((e) => (
+              <li key={e.id} className="list-item">
+                <span>{e.from?.canonical_name || detail.node?.canonical_name} —[{e.relation}]→ {e.to?.canonical_name || detail.node?.canonical_name}</span>
+              </li>
+            ))}
+          </ul>
+        </Section>
+      )}
+
+      <Section title="Shortest path">
+        <form onSubmit={findPath} style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+          <input placeholder="From concept or id" value={from} onChange={(e) => setFrom(e.target.value)} style={{ flex: 1, minWidth: "160px" }} />
+          <input placeholder="To concept or id" value={to} onChange={(e) => setTo(e.target.value)} style={{ flex: 1, minWidth: "160px" }} />
+          <Button variant="small" type="submit">Find path</Button>
+        </form>
+        {path && (
+          <ol style={{ marginTop: "8px" }}>
+            {(path.nodes || path || []).map?.((n, i) => (
+              <li key={i}>{typeof n === "string" ? n : (n.canonical_name || n.name || JSON.stringify(n))}</li>
+            ))}
+          </ol>
+        )}
+        {pathMsg && <p className="muted">{pathMsg}</p>}
+      </Section>
+
+      <Section title="Agent run (multi-step, citation-validated)">
+        <form onSubmit={runAgent} style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+          <input
+            placeholder="Ask a multi-step IP question…"
+            value={agentQ}
+            onChange={(e) => setAgentQ(e.target.value)}
+            style={{ flex: 1, minWidth: "240px" }}
+          />
+          <Button variant="small" type="submit" disabled={busy === "agent"}>
+            {busy === "agent" ? "Running…" : "Run agent"}
+          </Button>
+        </form>
+        {run && (
+          <div style={{ marginTop: "8px" }}>
+            <p>{run.answer}</p>
+            <div className="badge-row">
+              <Badge text={`confidence: ${run.confidence}`} />
+              <Badge text={`${run.steps_used}/${run.max_steps} steps`} />
+              {run.insufficient_evidence && <Badge text="insufficient evidence" />}
+              <Badge text="review required" />
+            </div>
+            {(run.citations || []).length > 0 && (
+              <ul className="list">
+                {run.citations.map((c, i) => (
+                  <li key={i} className="list-item">
+                    [{i + 1}] {c.title} {c.confidence_label && <Badge text={c.confidence_label} />}
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="muted">{run.disclaimer}</p>
+          </div>
+        )}
+      </Section>
+
+      <Section title="Past runs">
+        <ul className="list">
+          {traces.map((t) => (
+            <li key={t.id} className="list-item">
+              <span>#{t.id} — {t.query} ({t.steps_used} steps, {t.confidence})</span>
+            </li>
+          ))}
+          {traces.length === 0 && <li className="muted">No agent runs yet.</li>}
+        </ul>
+      </Section>
+      </div>
     </div>
   );
 }
@@ -5387,6 +5972,14 @@ function ChatMarketPanel({ m }) {
           {(m.market_context || []).map((label) => (
             <li key={label}>- {label}-specific sources</li>
           ))}
+          <li>
+            - Jurisdiction switch:{" "}
+            {m.jurisdiction_mode === "india"
+              ? "India only"
+              : m.jurisdiction_mode === "international"
+                ? "International only"
+                : "Both (passport markets decide)"}
+          </li>
           <li>
             - Private documents:{" "}
             {m.private_search_performed ? "searched" : "not searched"}
@@ -5478,6 +6071,48 @@ function ChatMarketPanel({ m }) {
 }
 
 
+// Activity statuses shown while the assistant response is being generated.
+// EDIT THESE to change the wording. Keep each message honest: the chat flow
+// really does (1) read the query, (2) search the verified corpus (pgvector +
+// FTS hybrid retrieval), (3) compare/rerank the retrieved passages, (4) draft
+// the cited answer. Do NOT name a specific source (e.g. "Checking Charaka
+// Samhita…") unless the app actually accessed that source.
+const AYURVEDA_ACTIVITY_MESSAGES = [
+  "Understanding your query…",
+  "Searching the verified corpus…",
+  "Comparing relevant information…",
+  "Formulating the response…",
+];
+
+function AyurvedaActivityIndicator({
+  active,
+  messages = AYURVEDA_ACTIVITY_MESSAGES,
+  intervalMs = 1900,
+}) {
+  const [index, setIndex] = useState(0);
+  // The parent mounts this only while generating (`{loading && <…/>}`), so
+  // every request starts from the first status on a fresh mount and unmounts
+  // (stopping the timer) when the answer arrives or an error occurs. The
+  // interval callback below is the only state update — no sync setState.
+  useEffect(() => {
+    if (!active || messages.length <= 1) return;
+    const id = setInterval(() => {
+      setIndex((i) => (i + 1) % messages.length);
+    }, intervalMs);
+    return () => clearInterval(id);
+  }, [active, messages, intervalMs]);
+  if (!active) return null;
+  return (
+    <div className="ai-activity" role="status" aria-live="polite" aria-atomic="true">
+      <span className="ai-activity-dot" aria-hidden="true" />
+      {/* key restarts the fade/slide animation on every status change */}
+      <span className="ai-activity-text" key={index}>
+        {messages[index]}
+      </span>
+    </div>
+  );
+}
+
 function ChatAssistant() {
   const { accessToken } = useAuth();
   const toast = useToast();
@@ -5496,11 +6131,13 @@ function ChatAssistant() {
   const [includeMyDocs, setIncludeMyDocs] = useState(true);
   const [inputLanguage, setInputLanguage] = useState("en");
   const [outputLanguage, setOutputLanguage] = useState("en");
-  // Jurisdiction toggle (SIH requirement A1: "explicit jurisdiction switch …
-  // with the two answer-sets kept visibly separate")
-  // "both" = retrieve from all jurisdictions (default general mode)
-  // "india" = only national regime  "international" = only international regime
+  // Jurisdiction switch (SIH requirement A1: "explicit jurisdiction switch …
+  // with the two answer-sets kept visibly separate").
+  // "both" = passport-market scope (default); "india" = Indian sources only;
+  // "international" = labelled non-Indian sources only. Sent as
+  // `jurisdiction_mode` on every chat request.
   const [jurisdictionMode, setJurisdictionMode] = useState("both");
+
   // Escalation state
   const [escalating, setEscalating] = useState(false);
   const [escalationResult, setEscalationResult] = useState(null);
@@ -5611,7 +6248,11 @@ function ChatAssistant() {
         ...prev,
         { id: att.id, filename: att.filename, char_count: att.char_count || 0, truncated: !!att.truncated },
       ]);
-      toast(`${att.filename} attached successfully`);
+      if ((att.char_count || 0) === 0) {
+        toast(`${att.filename} attached, but no readable text was found in it (scanned image?). The chatbot may not be able to use it.`);
+      } else {
+        toast(`${att.filename} attached successfully`);
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -5691,6 +6332,15 @@ function ChatAssistant() {
     e?.preventDefault();
     const query = inputMessage.trim();
     if (!query || loading) return;
+    // The PDF upload and the chat request are separate calls: sending while
+    // the upload is still in flight would submit attachment_ids=[] and the
+    // assistant would honestly answer that no PDF was provided. Block Send
+    // until the upload finishes (the button is disabled too; this is the
+    // keyboard/edge-case guard).
+    if (uploadingAttachment) {
+      setError("Your PDF is still uploading — please wait a few seconds and send again once it shows as attached.");
+      return;
+    }
 
     setError(null);
     setInputMessage("");
@@ -5717,6 +6367,7 @@ function ChatAssistant() {
         output_language: outputLanguage,
         attachment_ids: attachments.map((a) => a.id),
         provider: llmProvider,
+        jurisdiction_mode: jurisdictionMode,
       };
 
       const res = await api.chat(accessToken, payload);
@@ -5737,6 +6388,7 @@ function ChatAssistant() {
         // Market-entry context (jurisdiction scope) — present whenever a
         // Product Passport version with target markets frames the question.
         market_context: res.market_context || [],
+        jurisdiction_mode: res.jurisdiction_mode || "both",
         jurisdiction_filter: res.jurisdiction_filter || [],
         unselected_jurisdiction_sources_excluded:
           res.unselected_jurisdiction_sources_excluded || [],
@@ -5883,6 +6535,35 @@ function ChatAssistant() {
       <div className="chat-main">
         <Card>
           <div className="chat-toolbar">
+            {/* Jurisdiction switch (SIH: national vs international layers kept
+                separate). "Both" preserves the passport-market scope. */}
+            <div className={"llm-toggle jurisdiction-" + jurisdictionMode} role="group" aria-label="Choose the jurisdiction scope">
+              <span className="llm-knob" aria-hidden="true" />
+              <button
+                type="button"
+                className={jurisdictionMode === "both" ? "active" : ""}
+                onClick={() => setJurisdictionMode("both")}
+                title="Retrieve from all jurisdictions (passport markets decide)"
+              >
+                Both
+              </button>
+              <button
+                type="button"
+                className={jurisdictionMode === "india" ? "active" : ""}
+                onClick={() => setJurisdictionMode("india")}
+                title="Indian sources only"
+              >
+                India
+              </button>
+              <button
+                type="button"
+                className={jurisdictionMode === "international" ? "active" : ""}
+                onClick={() => setJurisdictionMode("international")}
+                title="International sources only (treaties and non-Indian regimes)"
+              >
+                International
+              </button>
+            </div>
             <div className={"llm-toggle " + llmProvider} role="group" aria-label="Choose the answer provider">
               <span className="llm-knob" aria-hidden="true" />
               <button
@@ -5965,6 +6646,14 @@ function ChatAssistant() {
                             <div className="chat-cite" key={cIdx}>
                               <div className="ct">
                                 [{cIdx + 1}] {c.title} {c.jurisdiction && `(${c.jurisdiction})`} · <span style={{ textTransform: "capitalize" }}>{String(c.source_type || "").replace(/_/g, " ")}</span>
+                                {c.confidence_label && (
+                                  <span
+                                    className={"conf conf-" + String(c.confidence_label).toLowerCase()}
+                                    title={"Relative match strength within this answer (0-1), not a probability: " + (c.confidence_score ?? "n/a")}
+                                  >
+                                    · {c.confidence_label}
+                                  </span>
+                                )}
                               </div>
                               {c.relevant_text && (
                                 <blockquote>
@@ -5981,11 +6670,7 @@ function ChatAssistant() {
               ))
             )}
 
-            {loading && (
-              <div className="chat-typing">
-                Searching the corpus and drafting a cited answer…
-              </div>
-            )}
+            {loading && <AyurvedaActivityIndicator active={loading} />}
           </div>
 
           <FormError message={error} />
@@ -6052,8 +6737,8 @@ function ChatAssistant() {
             >
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" /><path d="M19 10v2a7 7 0 0 1-14 0v-2" /><line x1="12" y1="19" x2="12" y2="23" /><line x1="8" y1="23" x2="16" y2="23" /></svg>
             </button>
-            <Button disabled={loading || !inputMessage.trim()} type="submit">
-              {loading ? "Thinking…" : "Send"}
+            <Button disabled={loading || uploadingAttachment || !inputMessage.trim()} type="submit">
+              {loading ? "Thinking…" : uploadingAttachment ? "Uploading…" : "Send"}
             </Button>
           </form>
         </Card>
@@ -6109,7 +6794,7 @@ const css = `
 
   /* Cards */
   .card { background: #FFFDF8; border: 1px solid #E7DFCE; border-radius: 12px; padding: 26px 28px; box-shadow: 0 1px 2px rgba(28, 36, 32, 0.04); }
-  .card-title { margin: 0 0 16px; font-family: Georgia, "Palatino Linotype", "Times New Roman", serif; font-size: 21px; font-weight: 500; line-height: 1.3; letter-spacing: -0.01em; color: #1C2420; }
+  .card-title { margin: 0 0 16px; font-family: "Times New Roman", Times, serif; font-size: 21px; font-weight: 500; line-height: 1.3; letter-spacing: -0.01em; color: #1C2420; }
   .card-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
   .empty { color: #5B6670; margin: 8px 0; }
 
@@ -6235,7 +6920,7 @@ const css = `
   /* Knowledge Base page */
   .kb-head { padding: 6px 0 22px; }
   .kb-eyebrow { font-size: 12px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: #6B5E43; margin: 0 0 12px; }
-  .kb-h1 { font-family: Georgia, "Palatino Linotype", "Times New Roman", serif; font-weight: 400; font-size: clamp(28px, 3vw, 40px); line-height: 1.15; letter-spacing: -0.01em; color: #1C2420; margin: 0 0 10px; }
+  .kb-h1 { font-family: "Times New Roman", Times, serif; font-weight: 400; font-size: clamp(28px, 3vw, 40px); line-height: 1.15; letter-spacing: -0.01em; color: #1C2420; margin: 0 0 10px; }
   .kb-sub { font-size: 15px; line-height: 1.55; color: #5B6670; max-width: 720px; margin: 0; }
   .kb-stats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; margin-bottom: 20px; }
   .kb-stats .stat-box { min-width: 0; }
@@ -6261,7 +6946,7 @@ const css = `
   /* Shared page header (Reviews, Dashboard, Demo) */
   .pg-head { padding: 6px 0 20px; }
   .pg-eyebrow { font-size: 12px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: #6B5E43; margin: 0 0 12px; }
-  .pg-h1 { font-family: Georgia, "Palatino Linotype", "Times New Roman", serif; font-weight: 400; font-size: clamp(28px, 3vw, 40px); line-height: 1.15; letter-spacing: -0.01em; color: #1C2420; margin: 0 0 10px; }
+  .pg-h1 { font-family: "Times New Roman", Times, serif; font-weight: 400; font-size: clamp(28px, 3vw, 40px); line-height: 1.15; letter-spacing: -0.01em; color: #1C2420; margin: 0 0 10px; }
   .pg-sub { font-size: 15px; line-height: 1.55; color: #5B6670; max-width: 760px; margin: 0; }
   .subheading { color: #1E3A2F; }
 
@@ -6278,7 +6963,9 @@ const css = `
 
   /* Reviews */
   .rv-form { display: grid; grid-template-columns: 2fr 1fr 2fr auto; gap: 14px; align-items: end; }
-  .rv-form .field { margin-bottom: 0; }
+  .rv-form .field { margin-bottom: 0; min-width: 0; }
+  .rv-form .field input, .rv-form .field select { width: 100%; max-width: 100%; }
+  .rv-form .field .btn { white-space: nowrap; flex-shrink: 0; }
   .demo-fields .field { margin-bottom: 0; }
   .rv-comment-row { display: flex; gap: 10px; margin-top: 12px; }
   .input-line { flex: 1; min-width: 0; padding: 11px 16px; border: 1px solid #E4DACA; border-radius: 999px; background: #FAF5EC; font-size: 14.5px; color: #1C2420; }
@@ -6318,6 +7005,10 @@ const css = `
   .chat-cites-head .prov { font-weight: 400; letter-spacing: normal; text-transform: none; color: #5B6670; margin-left: 8px; }
   .chat-cite { padding: 9px 11px; background: #F6F2E5; border-radius: 8px; font-size: 12.5px; border-left: 3px solid #1E3A2F; margin-bottom: 6px; }
   .chat-cite .ct { font-weight: 600; color: #1E3A2F; }
+  .chat-cite .conf { font-weight: 700; font-size: 11px; letter-spacing: 0.04em; padding: 1px 7px; border-radius: 999px; margin-left: 2px; white-space: nowrap; }
+  .chat-cite .conf-high { background: #E3EFE4; color: #1E5B33; border: 1px solid #BFDCC4; }
+  .chat-cite .conf-medium { background: #FBF3DC; color: #7A5B00; border: 1px solid #EAD9A0; }
+  .chat-cite .conf-low { background: #F9E8E4; color: #8A2E1F; border: 1px solid #EBC2B8; }
   .chat-cite blockquote { margin: 5px 0 0; font-style: italic; color: #5B6670; }
   /* --- Market-entry context panel (jurisdiction scope) --- */
   .market-panel { white-space: normal; margin: -4px 0 12px; padding: 10px 12px; background: #F4F7F3; border: 1px solid #DCE6DC; border-radius: 9px; font-size: 12.5px; line-height: 1.5; }
@@ -6339,7 +7030,16 @@ const css = `
   .mp-claim-meta { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
   .mp-tag { background: #EAF0EA; border: 1px solid #CFDDD1; border-radius: 999px; padding: 2px 8px; font-size: 11.5px; color: #2C4A38; }
   .mp-tag-review { background: #FFF7E0; border-color: #EADCA8; color: #7A5F10; }
-  .chat-typing { align-self: flex-start; padding: 10px 15px; background: #FFFDF8; border: 1px solid #E7DFCE; border-radius: 999px; font-size: 13px; color: #5B6670; }
+  .ai-activity { align-self: flex-start; min-height: 40px; box-sizing: border-box; display: flex; align-items: center; gap: 9px; padding: 10px 15px; background: #FFFDF8; border: 1px solid #E7DFCE; border-radius: 999px; font-size: 13px; color: #5B6670; max-width: min(85%, 760px); }
+  .ai-activity-dot { width: 7px; height: 7px; border-radius: 50%; background: #8A9A8E; flex-shrink: 0; animation: ai-dot-pulse 1.9s ease-in-out infinite; }
+  .ai-activity-text { display: inline-block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; animation: ai-fade-slide 1.9s ease both; }
+  @keyframes ai-fade-slide { 0% { opacity: 0; transform: translateY(6px); } 14% { opacity: 1; transform: translateY(0); } 78% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-6px); } }
+  @keyframes ai-dot-pulse { 0%, 100% { opacity: 0.45; } 50% { opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) {
+    .ai-activity-dot { animation: none; opacity: 0.8; }
+    .ai-activity-text { animation: ai-fade-only 1.9s ease both; }
+  }
+  @keyframes ai-fade-only { 0% { opacity: 0; } 14% { opacity: 1; } 78% { opacity: 1; } 100% { opacity: 0; } }
   .chat-input-row { display: flex; gap: 10px; align-items: center; flex-shrink: 0; }
   .chat-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
   .llm-toggle { position: relative; display: inline-flex; background: #FAF5EC; border: 1px solid #E7DFCE; border-radius: 999px; padding: 3px; user-select: none; }
@@ -6347,6 +7047,11 @@ const css = `
   .llm-toggle.sarvam .llm-knob { transform: translateX(100%); }
   .llm-toggle button { position: relative; z-index: 1; border: none; background: none; cursor: pointer; font: inherit; font-size: 12.5px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; width: 84px; padding: 7px 0; color: #43524A; transition: color 240ms ease; }
   .llm-toggle button.active { color: #FAF5EC; }
+  /* Three-way jurisdiction switch: one third per option, two slide steps. */
+  .llm-toggle[class*="jurisdiction-"] .llm-knob { width: calc(33.333% - 2px); }
+  .llm-toggle.jurisdiction-india .llm-knob { transform: translateX(100%); }
+  .llm-toggle.jurisdiction-international .llm-knob { transform: translateX(200%); }
+  .llm-toggle[class*="jurisdiction-"] button { width: 110px; }
   .icon-btn { width: 42px; height: 42px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; border: 1px solid #E4DACA; background: #FAF5EC; color: #1E3A2F; cursor: pointer; padding: 0; transition: transform 160ms ease, background 160ms ease, border-color 160ms ease, color 160ms ease; }
   .icon-btn:hover { background: #F5EEDF; transform: translateY(-1px); }
   .icon-btn:disabled { opacity: 0.55; cursor: progress; transform: none; }

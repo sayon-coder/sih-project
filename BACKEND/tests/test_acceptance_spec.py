@@ -62,10 +62,17 @@ FIVE_MISSING = [
     "exact label claims",
     "manufacturing/licensing details",
 ]
+# The six formulation categories the problem statement enumerates
+# (classical/generic, patent-or-proprietary, new/non-classical drug,
+# phytopharmaceutical, Ayurveda-Aahar/nutraceutical, cosmetic) - mirrors
+# app/analysis/schemas.py::UNRESOLVED_PATHWAYS exactly.
 POSSIBLE_CATEGORIES = [
-    "proprietary_ayurvedic_product",
-    "nutraceutical_or_ayurveda_aahara",
-    "possible_medicinal_product",
+    "classical_traditional",
+    "proprietary_ayurvedic",
+    "new_drug",
+    "phytopharmaceutical",
+    "ayurveda_aahara",
+    "possible_cosmetic",
 ]
 ABS_ITEMS = [
     "Applicant category",

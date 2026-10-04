@@ -98,6 +98,11 @@ class ChatRequest(BaseModel):
     output_language: str = "en"
     filter_source_types: Optional[List[str]] = None
     filter_jurisdictions: Optional[List[str]] = None
+    # Explicit jurisdiction switch (SIH: national vs international layers kept
+    # separate). "both" (default) preserves the market-derived scope;
+    # "india" restricts retrieval to Indian sources; "international" restricts
+    # it to every labelled non-Indian jurisdiction present in the corpus.
+    jurisdiction_mode: Optional[Literal["both", "india", "international"]] = "both"
     include_my_documents: bool = True
     # PDFs uploaded for this message (bound to the session server-side).
     attachment_ids: Optional[List[int]] = None
@@ -169,6 +174,8 @@ class ChatResponse(BaseModel):
     # ---------------------------------------------------------------
     # Display labels of the selected target markets, e.g. ["India", "Germany/EU"].
     market_context: List[str] = []
+    # Human-selected jurisdiction switch echo: both | india | international.
+    jurisdiction_mode: str = "both"
     # Allowed source jurisdictions for this answer (market scope).
     jurisdiction_filter: List[str] = []
     # Jurisdictions whose sources were dropped because they are not selected.
@@ -305,8 +312,27 @@ def chat(
     market_scopes: Dict[str, List[str]] = {}
     for _market in selected_markets:
         market_scopes[market_display_label(_market)] = allowed_for_market(_market)
-    # Allowed list = market-derived + any explicit request filter.
-    allowed: List[str] = allowed_jurisdictions(selected_markets)
+    # Explicit jurisdiction switch resolves first; "both" (the default)
+    # keeps the market-derived scope exactly as before.
+    mode = (req.jurisdiction_mode or "both").lower()
+    if mode == "india":
+        allowed: List[str] = ["India"]
+    elif mode == "international":
+        _labelled = {
+            row[0]
+            for row in db.query(SourceDocument.jurisdiction)
+            .filter(SourceDocument.jurisdiction.isnot(None))
+            .distinct()
+            .all()
+            if row[0]
+        }
+        # Unlabelled documents cannot be verified as international regime
+        # sources, so they stay out of the international layer.
+        allowed = sorted(j for j in _labelled if j.casefold() != "india")
+    else:
+        mode = "both"
+        # Allowed list = market-derived + any explicit request filter.
+        allowed = allowed_jurisdictions(selected_markets)
     for _explicit in (req.filter_jurisdictions or []):
         if _explicit and _explicit.casefold() not in {a.casefold() for a in allowed}:
             allowed.append(_explicit)
@@ -334,6 +360,9 @@ def chat(
         allowed_jurisdictions=allowed,
         market_scopes=market_scopes,
         private_doc_ids=private_doc_ids,
+        # Explicit switch modes are strict: neutral/unlabelled chunks are
+        # dropped so the national and international layers never conflate.
+        strict=(mode != "both"),
         # getattr: some tests stub get_settings() with a partial object
         # (e.g. SimpleNamespace(debug=True)); the default mirrors
         # app.config rag_rerank_top_k = 6.
@@ -360,6 +389,7 @@ def chat(
             "selected_markets": list(selected_markets),
             "market_labels": list(market_scopes.keys()),
             "allowed_jurisdictions": list(allowed),
+            "jurisdiction_mode": mode,
             "launch_question": launch_question,
             "missing_information": list(missing_info),
             "counts_provider": scope_tracker.public_counts_by_market,
@@ -617,6 +647,7 @@ def chat(
     # -------------------------------------------------------
     filters_applied = [f"source_type:{v}" for v in (req.filter_source_types or [])]
     filters_applied += [f"jurisdiction:{v}" for v in (req.filter_jurisdictions or [])]
+    filters_applied.append(f"jurisdiction_mode:{mode}")
     for _jur in allowed:
         _entry = f"jurisdiction:{_jur}"
         if _entry not in filters_applied:
@@ -734,6 +765,7 @@ def chat(
         disclaimer=GENERAL_DISCLAIMER,
         # --- market-entry / jurisdiction context (spec fields) ---
         market_context=market_context,
+        jurisdiction_mode=mode,
         jurisdiction_filter=list(allowed),
         unselected_jurisdiction_sources_excluded=excluded_labels,
         private_search_requested=bool(req.include_my_documents),

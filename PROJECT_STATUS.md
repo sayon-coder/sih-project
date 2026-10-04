@@ -422,7 +422,7 @@ are now implemented and embedded in the comprehensive result.
 | Disclosures UI | VERIFIED | `DisclosuresSection` on version page (record + review) |
 | Reports UI | VERIFIED | `ReportsSection` (3 generators + PDF download) |
 | Reviews UI | VERIFIED | `/reviews` page (create, transitions, comments) |
-| Dashboard UI | VERIFIED | `/dashboard` page (counts, disclosures, activity) |
+| Dashboard UI | REMOVED 2026-10-04 | `/dashboard` page deleted on user request; backend `GET /api/dashboard` kept for Home stat tiles |
 | BHASHINI UI | VERIFIED | Chat input/output language selects (en/hi/bn) |
 | Flow coverage | VERIFIED | 19 new flow checks mirror exactly what the UI calls |
 

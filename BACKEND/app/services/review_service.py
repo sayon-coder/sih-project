@@ -21,14 +21,14 @@ from __future__ import annotations
 
 import json
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from fastapi import HTTPException, Request
 from sqlalchemy.orm import Session
 
 from app.models import Claim, Evidence, EvidenceStatus, ProductVersion, VerificationStatus
 from app.models.review_models import ExpertReview, ReviewComment, ReviewStatus
-from app.models.models import RoleName
+from app.models.models import RoleName, User
 from app.services.audit_service import AuditService
 from app.services.version_content import load_version_content
 from app.utils.authorization import (
@@ -46,6 +46,88 @@ def _is_expert(db: Session, user_id: int) -> bool:
 
 def _status_value(status) -> str:
     return status.value if isinstance(status, ReviewStatus) else str(status)
+
+
+def _notify_review_desk(
+    db: Session,
+    review: ExpertReview,
+    user_id: int,
+    audit_id: Optional[int] = None,
+) -> Dict[str, Any]:
+    """Email the review desk about a new request. Best-effort, never raises.
+
+    The email carries the reference number, the requester's identity, the
+    product/version under review, what the requester wants examined, and the
+    IST submission time. Any failure is audit-logged, never propagated.
+    Returns the ``{"sent", "reason"}`` outcome so the API can report it
+    honestly instead of claiming a send that never happened.
+    """
+    from app.config import get_settings
+    from app.models import Product
+    from app.services.notify_service import send_review_email
+
+    settings = get_settings()
+    try:
+        requester = db.get(User, user_id)
+        product = db.get(Product, review.product_id)
+        version = db.get(ProductVersion, review.product_version_id)
+        payload = {
+            "ref": f"RV-{review.id:06d}",
+            "title": review.title,
+            "notes": review.notes,
+            "status": _status_value(review.status),
+            "product_name": product.name if product else f"#{review.product_id}",
+            "version_number": (
+                version.version_number if version else review.product_version_id
+            ),
+            "requester_name": (
+                requester.username if requester else f"user #{user_id}"
+            ),
+            "requester_email": requester.email if requester else "not recorded",
+            "submitted_at": review.created_at,
+            "review_url": (
+                f"{settings.public_base_url.rstrip('/')}/reviews"
+                if settings.public_base_url
+                else ""
+            ),
+            "audit_id": audit_id,
+        }
+        result = send_review_email(
+            payload,
+            smtp_host=settings.smtp_host,
+            smtp_port=settings.smtp_port,
+            smtp_username=settings.smtp_username,
+            smtp_password=settings.smtp_password,
+            use_tls=settings.smtp_use_tls,
+            sender=settings.review_notify_from or settings.smtp_username,
+            recipient=settings.review_notify_email,
+        )
+        AuditService.log_action(
+            db,
+            user_id,
+            (
+                "review_notify_sent"
+                if result["sent"]
+                else "review_notify_skipped"
+            ),
+            "review",
+            review.id,
+            {"ref": payload["ref"], "reason": result["reason"]},
+        )
+        return result
+    except Exception as exc:  # never break review creation for email
+        try:
+            AuditService.log_action(
+                db,
+                user_id,
+                "review_notify_failed",
+                "review",
+                review.id,
+                {"error": f"{exc.__class__.__name__}"},
+            )
+        except Exception:
+            pass
+    return {"sent": False, "reason": "notification failed internally"}
 
 
 def serialize(review: ExpertReview) -> Dict[str, Any]:
@@ -142,7 +224,7 @@ class ReviewService:
         title: Optional[str] = None,
         notes: Optional[str] = None,
         request: Optional[Request] = None,
-    ) -> ExpertReview:
+    ) -> Tuple[ExpertReview, Dict[str, Any]]:
         get_accessible_version(db, product_id, version_id, user_id)
         review = ExpertReview(
             product_id=product_id,
@@ -155,11 +237,22 @@ class ReviewService:
         db.add(review)
         db.commit()
         db.refresh(review)
-        AuditService.log_action(
+        audit_entry = AuditService.log_action(
             db, user_id, "create_review", "review", review.id,
             {"product_id": product_id, "product_version_id": version_id}, request,
         )
-        return review
+        notify_result = _notify_review_desk(db, review, user_id, audit_entry.id)
+        return review, notify_result
+
+    @staticmethod
+    def notify(db: Session, review_id: int, user_id: int) -> Dict[str, Any]:
+        """(Re)send the review-desk email for an existing review.
+
+        Owner- or reviewer-pool-visible reviews only (same access rule as
+        reading). Best-effort: returns the ``{"sent", "reason"}`` outcome.
+        """
+        review = ReviewService._get(db, review_id, user_id)
+        return _notify_review_desk(db, review, user_id)
 
     @staticmethod
     def list(db: Session, user_id: int, status: Optional[str] = None) -> List[ExpertReview]:
