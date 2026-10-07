@@ -40,8 +40,9 @@ IP-SAKTI Sahayak helps founders, researchers and reviewers record a product's fa
 | **IP route map & screening** | Deterministic preliminary route map (patent, trademark, copyright, design, GI, trade secret, plant variety, TK, biodiversity/ABS), patent feature screening against a clearly-labelled demo corpus, biodiversity/ABS and traditional-knowledge screens. Restricted sources (e.g. TKDL) are listed but **never accessed**. |
 | **Change impact** | Compare any two product versions: added/removed/modified items grouped by category, significance badges, review questions — advisory only, never modifies either version. |
 | **Disclosures & reports** | Record immutable public-disclosure events (SHA-256 hash + public verification URL), generate PDF reports (IP brief, disclosure record, expert handoff) each printed with a QR verification code. |
-| **Expert review workflow** | `DRAFT → AI_SCREENED → REVIEW_REQUIRED → EXPERT_REVIEW → … → REVIEWED → ARCHIVED`. Only completing a review as `EXPERT`/`ADMIN` promotes rows to `EXPERT_VERIFIED`. |
-| **Dashboard, audit, admin** | Per-user dashboard, personal audit trail, admin-only user/corpus/RAG overview. |
+| **Expert review workflow** | `DRAFT → AI_SCREENED → REVIEW_REQUIRED → EXPERT_REVIEW → … → REVIEWED → ARCHIVED`. Only completing a review as `EXPERT`/`ADMIN` promotes rows to `EXPERT_VERIFIED`. The review desk can be emailed per review (`POST /api/reviews/{id}/notify`) — best-effort, with honest failure reporting. |
+| **Dashboard, audit, admin** | Per-user dashboard, personal audit trail, admin-only user/corpus/RAG overview and cache stats (`GET /api/admin/cache/stats`, `POST /api/admin/cache/clear`). |
+| **Response caching** | An in-process TTL cache (no Redis) serves repeated overview/dashboard/knowledge/graph reads and **identical chat questions** — live on the Supabase free tier, a repeated question drops from 25–69 s to 5–6 s. Analysis and screening runs are reused while the version's `content_hash` is unchanged (`reused: true`; `?reuse=false` forces a fresh run). Every cache key carries a data revision (content hash / row ids), so a hit is never wrong by content. |
 | **Multilingual (BHASHINI)** | English / Hindi / Bengali input & output; when BHASHINI is unconfigured the system says so with a warning instead of inventing a translation. |
 
 ### The safety rules the AI must follow
@@ -72,14 +73,15 @@ IP-SAKTI Sahayak helps founders, researchers and reviewers record a product's fa
 │  reports · reviews · dashboard · admin · bhashini · sources · users  │
 │                                                                      │
 │  RAG pipeline (per question / per sub-question):                     │
-│    decompose → chunk → embed (BGE-M3, 1024-d) →                     │
+│    decompose → chunk → embed (BGE-M3, 1024-d) →                      │
 │    hybrid retrieval (pgvector cosine + Postgres FTS) →               │
 │    Reciprocal-Rank Fusion → cross-encoder rerank →                   │
-│    Groq LLM (llama-3.3-70b) with Sarvam AI fallback →               │
+│    Groq LLM (llama-3.3-70b) with Sarvam AI fallback →                │
 │    citation validation → status/abstention gates → structured JSON   │
 │                                                                      │
 │  Deterministic engines (no LLM): IP route map, patent screening,     │
 │  biodiversity/TK screen, version change impact, disclosure review    │
+│  In-process TTL response cache: slow GETs + repeated chat answers    │
 └───────────────┬──────────────────────────────────────────────────────┘
                 │  SQLAlchemy + Alembic migrations
 ┌───────────────▼──────────────────────────────────────────────────────┐
@@ -130,6 +132,7 @@ IP-SHAKTI/
 ├── PROJECT_STATUS.md            ← phase-by-phase verification status
 ├── DEVELOPMENT_LOG.md           ← chronological development log
 ├── TODO.md                      ← open work
+├── gcp/                         ← GCP free-tier deployment (guide + VM startup script)
 ├── BACKEND/
 │   ├── README.md                ← full API reference (every endpoint)
 │   ├── app/
@@ -149,8 +152,9 @@ IP-SHAKTI/
 │   ├── corpus/                  ← 110+ source documents (Ayurveda, IP, regulation)
 │   ├── data/uploads/ · data/reports/   ← user uploads & generated PDFs
 │   ├── scripts/                 ← seed_roles, ingest_corpus, verify_* checks
-│   ├── tests/                   ← pytest suite (295 tests)
+│   ├── tests/                   ← pytest suite (529 tests)
 │   ├── docker-compose.yml       ← local pgvector Postgres on port 5433
+│   ├── docker-compose.gcp.yml    ← single-VM cloud stack (nginx :80)
 │   ├── requirements.txt
 │   └── .env.example             ← configuration template (copy to .env)
 └── FRONTEND/
@@ -208,6 +212,11 @@ cp .env.example .env      # Windows PowerShell: Copy-Item .env.example .env
 | `REPORTS_DIR` / `PUBLIC_BASE_URL` | – | `data/reports` / `http://localhost:8000` |
 | `BHASHINI_API_KEY` / `BHASHINI_BASE_URL` | – | optional translation |
 | `DEBUG` | – | `true` adds the `debug` block to chat responses |
+| `CACHE_ENABLED` / `CACHE_MAX_ENTRIES` | – | `true` / `2048` — in-process TTL response cache (no Redis needed) |
+| `CACHE_DEFAULT_TTL_SECONDS` / `CACHE_OVERVIEW_TTL_SECONDS` / `CACHE_DASHBOARD_TTL_SECONDS` / `CACHE_STATUS_TTL_SECONDS` / `CACHE_REGISTRY_TTL_SECONDS` / `CACHE_GRAPH_TTL_SECONDS` / `CACHE_EMBEDDING_TTL_SECONDS` / `CACHE_CHAT_TTL_SECONDS` | – | `60` / `300` / `60` / `30` / `300` / `60` / `600` / `600` |
+| `CACHE_ANALYSIS_REUSE` | – | `true` — reuse recorded analysis/screening runs while `content_hash` is unchanged (`?reuse=false` forces a fresh run) |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USERNAME` / `SMTP_PASSWORD` / `SMTP_USE_TLS` | – | review-desk email (Gmail App Password, port 587); all empty = notifications honestly report "not configured" and nothing is sent |
+| `REVIEW_NOTIFY_EMAIL` / `REVIEW_NOTIFY_FROM` | – | review-desk recipient (default set in `config.py`) / `From:` address (falls back to the SMTP username) |
 
 ---
 
@@ -292,6 +301,19 @@ creates tables at boot); `FRONTEND/Dockerfile` bakes the production bundle
 behind nginx with `/api/*` proxied to the backend. Docker is not required
 for development - the two-terminal setup above is enough.
 
+### Free-tier cloud deployment (GCP)
+
+An always-free `e2-micro` VM can run the whole stack. The step-by-step guide
+lives in [`gcp/DEPLOY_GCP.md`](gcp/DEPLOY_GCP.md) (project setup, the single
+`gcloud` command, secret configuration):
+
+* `docker-compose.gcp.yml` — production stack (Postgres + backend + nginx on port 80)
+* `gcp/gce-startup.sh` — VM bootstrap: installs Docker, clones this repository,
+  writes secrets from instance metadata (never committed) and starts the stack
+* The guide runs plain HTTP on the free tier; HTTPS is listed as a follow-up.
+  The repository must be publicly cloneable (or the VM given a deploy token),
+  because the startup script clones anonymously.
+
 ### 5. Open the app
 
 Visit **http://localhost:5173**, click **Register** (JSON fields: username, email, password, confirm_password), then log in.
@@ -327,7 +349,7 @@ Visit **http://localhost:5173**, click **Register** (JSON fields: username, emai
 7. **Knowledge** (`/knowledge`) — upload your own documents (PDF/TXT/DOCX) to make them searchable by the assistant.
 8. **Chat** (`/chat`) — ask questions (multi-part questions are decomposed and answered per topic). Attach PDFs for page-cited answers; switch output language `en` / `hi` / `bn`.
 9. **Disclosures & reports** — record disclosure events, then generate the IP brief / disclosure record / expert handoff PDFs (each with a QR verification link).
-10. **Reviews** (`/reviews`) — submit a version into the expert-review workflow; an `EXPERT`/`ADMIN` completing a review is the only path to `EXPERT_VERIFIED`.
+10. **Reviews** (`/reviews`) — submit a version into the expert-review workflow; an `EXPERT`/`ADMIN` completing a review is the only path to `EXPERT_VERIFIED`. Use **Email reviewer** to notify the review desk (best-effort — a missing SMTP config or send failure is reported honestly and never blocks the workflow).
 11. **Dashboard** (`/dashboard`) — counts, pending reviews, recent activity; `/demo` shows the showcase screens.
 
 ---
@@ -338,7 +360,7 @@ Visit **http://localhost:5173**, click **Register** (JSON fields: username, emai
 cd BACKEND
 
 # Full unit/integration suite — runs against in-memory SQLite (never touches real data)
-python -m pytest tests/ -q                      # 295 tests
+python -m pytest tests/ -q                      # 529 tests
 
 # With coverage
 python -m pytest tests/ --cov=app --cov-report=html
@@ -381,10 +403,10 @@ Key routes at a glance:
 | Change impact | `POST/GET /api/products/{id}/change-impact` |
 | Disclosures | `/versions/{vid}/disclosures` · `/disclosure-review` · `GET /api/disclosures/{id}/verify` |
 | Reports | `POST /versions/{vid}/reports/{type}` · `GET /api/reports/{id}[/verify]` |
-| Reviews | `POST /api/reviews` · state transitions (`submit`, `request-review`, `complete`, …) |
+| Reviews | `POST /api/reviews` · state transitions (`submit`, `request-review`, `complete`, …) · `POST /api/reviews/{id}/notify` |
 | Knowledge | `GET/POST /api/knowledge/documents` · `/index` · `/status` |
 | Assistant | `POST /api/assistant/chat` · `/attachments` · `GET/DELETE /api/assistant/conversations` |
-| Dashboard/Admin | `GET /api/dashboard` · `/api/audit` · `/api/admin/*` |
+| Dashboard/Admin | `GET /api/dashboard` · `/api/audit` · `/api/admin/*` (incl. `cache/stats`, `cache/clear`) |
 
 Frontend routes: `/` (landing), `/login`, `/register`, `/home`, `/products`, `/products/new`, `/products/:id/versions`, `/products/:id/versions/:versionId`, `/knowledge`, `/chat`, `/reviews`, `/dashboard`, `/demo`.
 
@@ -425,7 +447,7 @@ Frontend routes: `/` (landing), `/login`, `/register`, `/home`, `/products`, `/p
 
 ## Project status and documentation
 
-**Status: all phases 0–13 implemented and verified, plus the problem-statement completion batch** (explicit jurisdiction switch, citation confidence, clarifications loop, mounted privacy/registry/graph/agent layers, migrations 012–014, Docker deployment) — see [PROJECT_STATUS.md](PROJECT_STATUS.md) for evidence per phase.
+**Status: all phases 0–13 implemented and verified, plus the problem-statement completion batch** (explicit jurisdiction switch, citation confidence, clarifications loop, mounted privacy/registry/graph/agent layers, migrations 012–014, Docker deployment), **and the response-cache / answer-cache layer** (in-process TTL cache, chat answer cache, analysis/screening reuse, review-desk email, GCP free-tier artifacts) — see [PROJECT_STATUS.md](PROJECT_STATUS.md) for evidence per phase and [DEVELOPMENT_LOG.md](DEVELOPMENT_LOG.md) for the cache entries.
 
 | Document | Purpose |
 |---|---|
@@ -436,7 +458,7 @@ Frontend routes: `/` (landing), `/login`, `/register`, `/home`, `/products`, `/p
 | [BACKEND/README.md](BACKEND/README.md) | Complete API reference |
 | `../IP-SAKTI-Sahayak-Backend-Master-Prompt.txt` | Original specification this project is built against |
 
-**Verification at a glance:** `501` pytest tests pass (in-memory SQLite); per-phase live scripts plus the extended frontend-flow script pass against real PostgreSQL; the exact spec-17 chat scenario passes its live acceptance checks against the real LLM.
+**Verification at a glance:** `529` pytest tests pass with 0 failures (in-memory SQLite); per-phase live scripts plus the extended frontend-flow script pass against real PostgreSQL; the exact spec-17 chat scenario passes its live acceptance checks against the real LLM.
 
 ---
 

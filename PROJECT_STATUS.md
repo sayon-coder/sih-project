@@ -452,32 +452,32 @@ too - see `DEVELOPMENT_LOG.md`.
 
 1. **First AI analysis run downloads the embedding model.** Retrieval uses `BAAI/bge-m3` via `sentence-transformers`, which is not bundled. On a cold machine the first analysis (or RAG query) blocks on a multi-gigabyte HuggingFace download. Cache it during setup by running `scripts/ingest_corpus.py` or any RAG query once. Analysis resolves the LLM provider *before* retrieval, so a missing `GROQ_API_KEY` fails fast rather than after the download starts.
 2. **`evidence.document_hash` stays null** - the column exists but is only meaningful once evidence files are uploaded (Phase 8).
-3. **Analyses are not cached or deduplicated** - each `POST .../analyze` call performs a fresh (paid) model run. A content-hash-based cache would avoid re-running an unchanged version.
+3. **Analyses were not cached - RESOLVED 2026-10-07.** `POST .../analyze` now returns the recorded completed run (`reused: true`) while the version's `content_hash` is unchanged; `?reuse=false` forces a fresh (paid) model run. See `DEVELOPMENT_LOG.md`.
 4. **Analysis results are stored in an `analyses` row that is never edited** - sound for auditability, but a superseded analysis is only distinguished by `created_at`.
 5. **The frontend is a test UI, not a product UI** - one file, inline styles, no state library. It is deliberately minimal for manual testing through Phase 5.
 6. **Legacy files at BACKEND root removed 2026-10-03** - `main.py`, `models.py`, `auth/`, `databases/`, `hash/` (pre-Phase-1 dead code) were confirmed unimported by anything in `app/`, `tests/` or `scripts/` and deleted.
 7. **Pydantic v2 deprecation warnings** - schemas still use class-based `Config`; migrate to `ConfigDict` when convenient.
 8. **Restoring a session logs a 401 in the browser console** - on a first visit (no refresh cookie) `AuthProvider`'s `POST /api/auth/refresh` probe answers 401 by design. It is handled silently in the UI, but the browser's network log still shows it.
 9. **The patent corpus is a demonstration corpus.** Phase 6 has no live patent source, so screening runs against `app/data/patent_demo_corpus.py` (`demo-patents-2026.09`). Every response says so. Replacing it with a real public-records source would flip `retrieval_mode` to `LIVE_SOURCE`; nothing else would change.
-10. **Screening results are not cached** - each screening writes a new `analyses` row, as analyses do in Phase 5.
+10. **Screenings were not cached - RESOLVED 2026-10-07.** Content-only screenings are reused for unchanged content (`reused: true`); `include_sources=true` runs depend on the live corpus and are always fresh. Patent-search reuse also removed duplicate candidate records on re-click. See `DEVELOPMENT_LOG.md`.
 11. **`HF_TOKEN` must be declared in `Settings`.** Pydantic-settings forbids undeclared keys, so any new key added to `.env` must be added to `app/config.py` and `.env.example` or the app will not start.
 12. **Change-impact classification comparison needs a recorded analysis.** The simulator compares the latest recorded preliminary classification of each version; when neither has one it reports classification as not comparable rather than guessing. A deterministic classification signal would remove that dependency.
 13. **Public disclosure is not comparable yet** - the disclosures table does not exist until Phase 8, so change-impact runs list it in `not_compared`.
-14. **Change-impact runs are not cached** - each run writes a new `change_impacts` row, like analyses and screenings.
+14. **Change-impact runs are not cached** - each run writes a new `change_impacts` row (deliberate: the comparison is deterministic and cheap, with no model call; analyses and screenings by contrast are now reused for unchanged content).
 
 ## Test Status
 
-- **Full pytest suite:** 478 collected - **477 passing, 1 pre-existing failure** (in-memory SQLite, verified 2026-10-03, identical before and after the workspace cleanup + folder flatten). The failure is `test_acceptance_spec.py::TestBug4Classification::test_unresolved_with_the_five_information_requirements` - the test pins the three BUG-4 pathways from the 2026-09-27 design while `app/analysis/schemas.py::UNRESOLVED_PATHWAYS` now lists six renamed pathways. Code/test drift, needs a product decision - see `DEVELOPMENT_LOG.md` 2026-10-03 entry.
+- **Full pytest suite:** **529 passing, 0 failures** (in-memory SQLite, verified 2026-10-08). The 2026-10-03 BUG-4 acceptance failure no longer occurs. `tests/test_cache.py` (21 tests) covers the response-cache / answer-cache layer; `tests/conftest.py` clears the process-wide cache between tests and blanks SMTP so no test can send real email.
 - **Live HTTP frontend-flow test:** `verify_frontend_flow.py` 139/139 against a running server
 - **Overall Product View live checks:** `overview_live.py` 84/84
 - **Demo workflow:** `verify_demo_flow.py` 26/26
 - **Migration chain:** `verify_migrations.py` 5/5
-- **Frontend:** ESLint 12 = baseline; `npx vite build` OK (462.58 kB bundle)
+- **Frontend:** ESLint 19 problems = current baseline (verified 2026-10-08); `npx vite build` OK
 
 ## Migration Status
 
-- **Alembic:** configured; single linear chain 001 -> 002 -> ... -> 011
-- **Head:** `011` (applied on live PostgreSQL Supabase database)
+- **Alembic:** configured; single linear chain 001 -> 002 -> ... -> 014
+- **Head:** `014_clarification_answers` (applied on live PostgreSQL Supabase database, verified with `alembic current` on 2026-10-08)
 
 ## RAG Corpus Status
 
@@ -498,22 +498,28 @@ too - see `DEVELOPMENT_LOG.md`.
 
 ## Last Verified Task
 
-**Task:** Overall Product View - Live Demo replacement (spec items 16-19),
-plus the 2026-09-28 corpus additions (12 Indian statute files, 9 international
-IP/regime/case-law files - disk only, not ingested)
-**Date:** 2026-09-28
-**Status:** VERIFIED - 386/386 tests, ESLint 12 = baseline, flow 139/139,
-`overview_live.py` 84/84, `npx vite build` OK
+**Task:** Response-cache / answer-cache batch - in-process TTL cache for slow
+GETs, chat answer cache, analysis + screening reuse, frontend GET cache; plus
+review-desk email, GCP free-tier deploy artifacts, and this documentation
+refresh (root / BACKEND / FRONTEND READMEs)
+**Date:** 2026-10-08
+**Status:** VERIFIED - 529/529 tests (0 failures), ESLint 19 = baseline,
+`npx vite build` OK; live on Supabase free: overview 7.6 s -> 1.3 s repeat,
+identical chat question 25-69 s -> 5-6 s (`served_from_cache` / `reused`
+flags), screening re-clicks return `reused: true` without duplicating records
 
 ## Next Task
 
-**Task:** None remaining for the Overall Product View batch (VERIFIED
-2026-09-28). Open items: persist the panel metadata on `chat_messages` so
-history reloads show it (needs migration 012), re-ingest the corpus (21
-study files added on disk 2026-09-28, incl. the first Germany/EU source -
-DB still has none), Bhashini key, visual browser check of `/overview`.
-Handover: `alembic upgrade head` (currently at `011`), `pytest tests/ -q`
-(386), `verify_frontend_flow.py`, `verify_demo_flow.py`. Backend:
+**Task:** Docs committed and pushed (README, BACKEND/README, FRONTEND/README,
+PROJECT_STATUS, DEVELOPMENT_LOG, TODO). Open items: run the GCP deploy per
+`gcp/DEPLOY_GCP.md` (repository must be publicly cloneable for the startup
+script), HTTPS follow-up for the VM, persist chat panel metadata on
+`chat_messages` (if still wanted), re-ingest the corpus (21 study files on
+disk, DB still has none), Bhashini key, visual browser check of `/overview`,
+delete throwaway test accounts (`cachelive@example.com`,
+`stylecheck@example.com`, `smtplive*@example.com`).
+Handover: `alembic upgrade head` (014), `pytest tests/ -q` (529),
+`verify_frontend_flow.py`, `verify_demo_flow.py`. Backend:
 http://localhost:8000/api/docs.
 
 ---
@@ -539,7 +545,7 @@ cd IP-SHAKTI/BACKEND
 .venv/Scripts/python.exe scripts/verify_frontend_flow.py
 
 cd IP-SHAKTI/BACKEND
-.venv/Scripts/python.exe -m pytest tests/ -q     # 150 tests
+.venv/Scripts/python.exe -m pytest tests/ -q     # 529 tests
 .venv/Scripts/python.exe scripts/verify_phase2.py
 .venv/Scripts/python.exe scripts/verify_phase3.py
 .venv/Scripts/python.exe scripts/verify_phase4.py

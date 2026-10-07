@@ -74,6 +74,11 @@ cp .env.example .env
 # Edit .env with your database credentials and API keys
 ```
 
+Optional keys: `CACHE_*` tunes the in-process response cache (see the root
+README's configuration table), and `SMTP_*` + `REVIEW_NOTIFY_*` enable
+review-desk email notifications - without them nothing is sent and the API
+reports it openly.
+
 6. Run database migrations:
 ```bash
 alembic upgrade head
@@ -351,11 +356,18 @@ there is no wasted embedding work and no silent success.
   passages retrieved for that claim, and all metadata is read from the database.
 - It cannot produce a result without citations or evidence: uncited claims stay
   as declared and are reported as needing evidence.
-- It never mutates your data. Running an analysis five times leaves five rows and
-  the same claims.
+- It never mutates your data. Running an analysis five times with `?reuse=false`
+  leaves five rows and the same claims.
 
 AI output is stamped `AI_ANALYSIS`; the response always carries the preliminary
 screening disclaimers.
+
+**Run reuse.** `POST /claims/analyze` and `POST /analyze` accept `?reuse=false`.
+While the version's `content_hash` is unchanged, the newest completed run for
+that content is returned as-is (`reused: true`) instead of paying for another
+model call; any content edit changes the hash and is an automatic miss. A
+reused row is the same recorded analysis shown in the run history - nothing
+hidden, nothing recomputed.
 
 ### IP route map, patent screening, biodiversity/ABS and traditional knowledge (Phase 6)
 
@@ -370,15 +382,22 @@ patent or regulatory determination, and nothing here mutates your content.
   review questions. A route is never presented as legally applicable.
 - `POST /patents/search` - extract the version's technical features and screen
   them against a frozen demonstration corpus. Stores the candidate records for
-  the version and records the run.
+  the version and records the run. `?reuse=false` forces a fresh screening;
+  otherwise a completed screening for unchanged content is returned as-is
+  (`reused: true`), which also keeps re-clicks from duplicating candidate
+  records.
 - `GET  /patents` - the candidate records already identified for the version
 - `POST /patents/compare` - re-compare the version's current features against the
   identified records (optional body `{"patent_record_ids": [...]}`); creates no
   new records
 - `GET  /api/patents/{patent_id}` - one identified record
 - `POST /biodiversity/screen` - biodiversity/ABS screening. Status, potential
-  considerations, missing information, review questions and sources.
-- `POST /traditional-knowledge/screen` - traditional-knowledge screening
+  considerations, missing information, review questions and sources. A
+  completed content-only screening for unchanged content is reused
+  (`reused: true`; `?reuse=false` forces a fresh run); runs with
+  `?include_sources=true` depend on the live corpus and are never reused.
+- `POST /traditional-knowledge/screen` - traditional-knowledge screening, with
+  the same reuse rule as the biodiversity screen
 - `GET  /api/traditional-knowledge/sources` - the source registry, distinguishing
   `public`, `permitted` and `restricted` / unavailable sources
 
@@ -512,6 +531,15 @@ response next to `jurisdiction_filter`.
 `confidence_score` (relative match strength within that answer, 0-1, not a
 probability) and `confidence_label` (`HIGH` | `MEDIUM` | `LOW`).
 
+**Answer cache:** an identical question in an identical context (same user,
+canonical query, languages, provider, jurisdiction mode, filters, product
+content, attachment text, private-document set and corpus revision) is served
+from an in-process TTL cache (`CACHE_CHAT_TTL_SECONDS`, default 600 s) instead
+of re-running retrieval, rerank and the LLM. The turn is still written to the
+conversation and audited (`served_from_cache: true`), and answers produced
+during an outage are never cached. The key carries a data revision, so a new
+upload or analysis invalidates the answer automatically.
+
 **Facilitator escalation:** `POST /api/assistant/escalate` records an
 audit-logged handoff request to a human IP facilitator (`ESC-` id + contact
 channels; the MVP keeps no live queue and says so).
@@ -563,6 +591,11 @@ invention-disclosure disclaimer (not a patent application, no priority).
 - `POST /api/reviews` - open a DRAFT review for a version
 - `GET /api/reviews[?status=]`, `GET /api/reviews/{id}` - list and read
 - `POST /api/reviews/{id}/submit|request-review|comment|request-correction|resubmit|complete|archive`
+- `POST /api/reviews/{id}/notify` - email the review desk a formal notification
+  (reference, requester, product/version, notes, submission time in IST).
+  Best-effort: without SMTP configuration it reports "not configured" openly,
+  a send failure never blocks the review, and the outcome is recorded in the
+  audit trail (`SMTP_*` / `REVIEW_NOTIFY_*` settings).
 - Reviewer-only actions (`request-correction`, `complete`, `archive`) require the
   EXPERT or ADMIN role. Completing with `verify_claim_ids` / `verify_evidence_ids`
   promotes those rows to `EXPERT_VERIFIED` - the only path to that provenance.
@@ -575,6 +608,9 @@ invention-disclosure disclaimer (not a patent application, no priority).
 - `GET /api/admin/users`, `GET /api/admin/audit`, `GET /api/admin/rag/status` -
   platform overview (ADMIN only)
 - `GET/POST/PUT/DELETE /api/admin/sources[/{id}]` - corpus source records (ADMIN only)
+- `GET /api/admin/cache/stats`, `POST /api/admin/cache/clear` - inspect and
+  flush the in-process response cache: per-namespace hits/misses/evictions,
+  entry count and oldest age (ADMIN only)
 
 ### BHASHINI language layer (Phase 11)
 

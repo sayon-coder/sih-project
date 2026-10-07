@@ -60,8 +60,8 @@ The Vite config (`vite.config.js`) does two things:
 | `/products/:id/versions` | Version list for a product |
 | `/products/:id/versions/:versionId` | Version detail: content, analysis, IP screening, change impact, disclosures, reports |
 | `/knowledge` | Knowledge-base document upload/management |
-| `/chat` | RAG assistant (citations, PDF attachments, language switch) |
-| `/reviews` | Expert review workflow |
+| `/chat` | RAG assistant (citations, PDF attachments, language switch, activity indicator while answering) |
+| `/reviews` | Expert review workflow (incl. emailing the review desk per review) |
 | `/dashboard` | Dashboard |
 | `/demo` | Showcase screens |
 
@@ -70,4 +70,10 @@ The Vite config (`vite.config.js`) does two things:
 - Auth uses an access token in memory plus an **httpOnly refresh cookie**; the app
   restores the session on reload via `POST /api/auth/refresh`.
 - Registration/login send **JSON** bodies (form data is rejected with 422).
+- `GET` requests are cached in-process for 30 s with in-flight deduplication and
+  are busted automatically on any mutation (create/edit/delete, upload, login,
+  logout, session expiry), so StrictMode's double-mount and page revisits no
+  longer double-hit the API.
+- While an answer is being generated the chat shows a rotating activity status;
+  the animation respects `prefers-reduced-motion`.
 - `dist/` is generated output — delete it freely and rebuild with `npm run build`.
