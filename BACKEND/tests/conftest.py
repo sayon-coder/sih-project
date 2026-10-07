@@ -11,9 +11,42 @@ from app.database import Base, get_db
 from app.main import app
 from app.models import User, Role, UserRole, RoleName
 from app.utils import hash_password
+from app.utils.cache import cache as response_cache
 
 # Create in-memory SQLite database for testing
 SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
+
+
+@pytest.fixture(autouse=True)
+def _clean_response_cache():
+    """The process-wide response cache must never leak between tests.
+
+    Tests share one Python process and reuse user/product ids after each
+    in-memory DB reset; a cached chat/overview payload from a previous test
+    could otherwise be served against fresh data whose revision coincides.
+    Within a single test the cache stays active, which is exactly what the
+    cache tests exercise.
+    """
+    response_cache.clear()
+    yield
+    response_cache.clear()
+
+
+@pytest.fixture(autouse=True)
+def _no_real_email(monkeypatch):
+    """Never open a real SMTP connection during a test run.
+
+    The git-ignored ``BACKEND/.env`` carries real SMTP credentials on the
+    developer machine; without this guard any test that creates a review
+    would silently mail the review desk. Blanking host/username keeps
+    ``send_review_email`` on its honest "not configured" path. Tests that
+    exercise sending pass explicit ``smtp_*`` arguments instead.
+    """
+    from app.config import get_settings
+
+    settings = get_settings()
+    monkeypatch.setattr(settings, "smtp_host", "")
+    monkeypatch.setattr(settings, "smtp_username", "")
 
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL,

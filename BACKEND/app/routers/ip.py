@@ -87,6 +87,7 @@ def search_patents(
     product_id: int,
     version_id: int,
     request: Request,
+    reuse: bool = True,
     token_payload: dict = Depends(verify_token),
     db: Session = Depends(get_db),
 ):
@@ -95,13 +96,20 @@ def search_patents(
 
     Runs against a frozen demonstration corpus; the response says so explicitly.
     It is not a live patent search and is never a patentability determination.
+    ``reuse=true`` (default) returns the recorded screening for unchanged
+    content instead of creating duplicate candidate records; ``reuse=false``
+    forces a fresh screening.
     """
     analysis = IPService.search_patents(
-        db, product_id, version_id, _payload(token_payload), request=request
+        db, product_id, version_id, _payload(token_payload),
+        request=request, reuse=reuse,
     )
     return APIResponse(
         success=True,
-        data=AnalysisService.serialize(analysis),
+        data={
+            **AnalysisService.serialize(analysis),
+            "reused": bool(getattr(analysis, "_reused", False)),
+        },
         message="Patent screening completed",
     )
 
@@ -183,6 +191,7 @@ def screen_biodiversity(
     version_id: int,
     request: Request,
     include_sources: bool = False,
+    reuse: bool = True,
     token_payload: dict = Depends(verify_token),
     db: Session = Depends(get_db),
 ):
@@ -191,6 +200,9 @@ def screen_biodiversity(
 
     ``include_sources=true`` additionally searches the accessible corpus for
     supporting passages; it is opt-in because it requires the embedding model.
+    ``reuse=true`` (default) returns the recorded content-only screening for
+    unchanged content instead of running it again (corpus-dependent runs with
+    ``include_sources=true`` are never reused).
     """
     analysis = IPService.screen_biodiversity(
         db,
@@ -199,10 +211,14 @@ def screen_biodiversity(
         _payload(token_payload),
         include_sources=include_sources,
         request=request,
+        reuse=reuse,
     )
     return APIResponse(
         success=True,
-        data=AnalysisService.serialize(analysis),
+        data={
+            **AnalysisService.serialize(analysis),
+            "reused": bool(getattr(analysis, "_reused", False)),
+        },
         message="Biodiversity/ABS screening completed",
     )
 
@@ -216,6 +232,7 @@ def screen_traditional_knowledge(
     version_id: int,
     request: Request,
     include_sources: bool = False,
+    reuse: bool = True,
     token_payload: dict = Depends(verify_token),
     db: Session = Depends(get_db),
 ):
@@ -224,7 +241,9 @@ def screen_traditional_knowledge(
 
     ``include_sources=true`` additionally searches the accessible corpus to check
     whether a traditional use is publicly documented. Restricted sources such as
-    the TKDL are never searched.
+    the TKDL are never searched. ``reuse=true`` (default) returns the recorded
+    content-only screening for unchanged content; ``include_sources=true`` runs
+    are never reused.
     """
     analysis = IPService.screen_traditional_knowledge(
         db,
@@ -233,10 +252,14 @@ def screen_traditional_knowledge(
         _payload(token_payload),
         include_sources=include_sources,
         request=request,
+        reuse=reuse,
     )
     return APIResponse(
         success=True,
-        data=AnalysisService.serialize(analysis),
+        data={
+            **AnalysisService.serialize(analysis),
+            "reused": bool(getattr(analysis, "_reused", False)),
+        },
         message="Traditional-knowledge screening completed",
     )
 

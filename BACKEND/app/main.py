@@ -10,10 +10,13 @@ startup would bypass migrations and silently drift from the migrated schema.
 """
 import logging
 
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
+from app.utils.cache import configure as configure_cache
 from app.routers import (
     auth_router,
     product_router,
@@ -54,8 +57,18 @@ logging.basicConfig(
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
 )
 
+@asynccontextmanager
+async def _lifespan(app: FastAPI):
+    configure_cache(
+        max_entries=settings.cache_max_entries,
+        default_ttl=float(settings.cache_default_ttl_seconds),
+    )
+    yield
+
+
 app = FastAPI(
     title="IP-SAKTI Sahayak",
+    lifespan=_lifespan,
     description=(
         "Multilingual RAG-based AI Assistant for Ayurveda IP and Regulatory Guidance. "
         "This platform provides preliminary, source-backed information and decision "

@@ -26,6 +26,7 @@ from app.database import get_db
 from app.models.disclosure_models import DisclosureType
 from app.schemas.schemas import APIResponse
 from app.services.disclosure_service import DisclosureService, serialize
+from app.services.overview_service import invalidate_overview_cache
 from app.utils import verify_token
 
 version_router = APIRouter(
@@ -89,6 +90,7 @@ def create_disclosure(
         body.declarant_name,
         body.institution,
     )
+    invalidate_overview_cache(version_id)
     return APIResponse(
         success=True,
         data=serialize(event),
@@ -125,6 +127,7 @@ def create_disclosure_global(
         body.declarant_name,
         body.institution,
     )
+    invalidate_overview_cache(body.product_version_id)
     return APIResponse(
         success=True,
         data=serialize(event),

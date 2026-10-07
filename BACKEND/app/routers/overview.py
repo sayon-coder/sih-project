@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.schemas.schemas import APIResponse
-from app.services.overview_service import build_overview
+from app.services.overview_service import build_overview_cached
 from app.utils import verify_token
 from app.utils.authorization import get_accessible_version
 
@@ -39,7 +39,7 @@ def get_overview(
     """Overall Product View for the selected Product Passport version."""
     user_id = _uid(token_payload)
     version = get_accessible_version(db, product_id, version_id, user_id)
-    overview = build_overview(db, version.product, version, user_id=user_id)
+    overview = build_overview_cached(db, version.product, version, user_id=user_id)
     return APIResponse(
         success=True,
         message="Overall Product View built from the stored version record.",

@@ -21,6 +21,7 @@ from app.database import get_db
 from app.models import AuditLog, Role, RoleName, SourceDocument, User, UserRole
 from app.schemas.schemas import APIResponse
 from app.utils import get_user_role_names, require_admin
+from app.utils.cache import cache
 
 router = APIRouter(prefix="/api/admin", tags=["Admin"])
 settings = get_settings()
@@ -207,4 +208,21 @@ def admin_audit(
             for e in entries
         ],
         message=f"Found {len(entries)} audit entr(y/ies)",
+    )
+
+
+@router.get("/cache/stats", response_model=APIResponse)
+def cache_stats(admin: dict = Depends(require_admin)):
+    """Hit/miss counters per cache namespace (in-process; per worker)."""
+    return APIResponse(success=True, data=cache.stats())
+
+
+@router.post("/cache/clear", response_model=APIResponse)
+def cache_clear(admin: dict = Depends(require_admin)):
+    """Drop every cached entry (e.g. after a bulk corpus ingest)."""
+    dropped = cache.clear()
+    return APIResponse(
+        success=True,
+        data={"dropped_entries": dropped},
+        message=f"Cleared {dropped} cached entr(y/ies)",
     )

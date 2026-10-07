@@ -139,6 +139,12 @@ class IPService:
         db.commit()
         for record in records:
             db.refresh(record)
+        # New candidate records change the overview IP section for this version.
+        try:
+            from app.services.overview_service import invalidate_overview_cache
+            invalidate_overview_cache(version.id)
+        except Exception:
+            pass
         return records
 
     @staticmethod
@@ -193,13 +199,32 @@ class IPService:
         version_id: int,
         user_id: int,
         request=None,
+        reuse: bool = True,
     ) -> Analysis:
         """
         Screen a version, persist the identified records, and record the run.
 
         Returns the persisted ``Analysis`` row (type ``PATENT_SCREENING``).
+        When ``reuse`` is true (default) and a screening run already exists
+        for the unchanged content, that row is returned instead of creating
+        duplicate candidate records and a duplicate run; ``reuse=false``
+        forces a fresh screening.
         """
         version = IPService._version(db, product_id, version_id, user_id)
+
+        if reuse:
+            hit = AnalysisService._find_reusable(
+                db,
+                version,
+                AnalysisType.PATENT_SCREENING,
+                # PATENT_SCREENING also stores feature comparisons; only a
+                # real screening run may be reused here.
+                results_match=lambda r: r.get("kind") == "patent_screening",
+            )
+            if hit is not None:
+                hit._reused = True  # transient flag for the router, not persisted
+                return hit
+
         content = IPService._content(db, version)
 
         result = screen_patents(
@@ -351,8 +376,27 @@ class IPService:
         user_id: int,
         include_sources: bool = False,
         request=None,
+        reuse: bool = True,
     ) -> Analysis:
         version = IPService._version(db, product_id, version_id, user_id)
+
+        # Reuse only for content-only screenings: a ``include_sources``
+        # run depends on the live corpus (and this user's private documents),
+        # so it must be re-executed to stay current.
+        if reuse and not include_sources:
+            hit = AnalysisService._find_reusable(
+                db,
+                version,
+                AnalysisType.BIODIVERSITY_SCREENING,
+                results_match=lambda r: (
+                    r.get("kind") == "biodiversity_screening"
+                    and r.get("collected", {}).get("corpus_sources_requested") is False
+                ),
+            )
+            if hit is not None:
+                hit._reused = True
+                return hit
+
         content = IPService._content(db, version)
 
         result = screen_biodiversity(
@@ -397,8 +441,25 @@ class IPService:
         user_id: int,
         include_sources: bool = False,
         request=None,
+        reuse: bool = True,
     ) -> Analysis:
         version = IPService._version(db, product_id, version_id, user_id)
+
+        # Same rule as biodiversity: corpus-dependent runs are never reused.
+        if reuse and not include_sources:
+            hit = AnalysisService._find_reusable(
+                db,
+                version,
+                AnalysisType.TK_SCREENING,
+                results_match=lambda r: (
+                    r.get("kind") == "tk_screening"
+                    and r.get("collected", {}).get("corpus_sources_requested") is False
+                ),
+            )
+            if hit is not None:
+                hit._reused = True
+                return hit
+
         content = IPService._content(db, version)
 
         result = screen_traditional_knowledge(

@@ -37,6 +37,7 @@ def analyze_claims(
     product_id: int,
     version_id: int,
     request: Request,
+    reuse: bool = True,
     token_payload: dict = Depends(verify_token),
     db: Session = Depends(get_db),
 ):
@@ -45,14 +46,18 @@ def analyze_claims(
 
     The review is advisory: it records a new analysis but never edits the
     underlying claims. An AI suggestion can never mark a claim supported or
-    expert-verified.
+    expert-verified. When ``reuse`` is true (default) and a completed run
+    already exists for the version's current content, that run is returned
+    without spending another model call; ``reuse=false`` forces a fresh run.
     """
     analysis = AnalysisService.analyze_claims(
-        db, product_id, version_id, _payload(token_payload), request=request
+        db, product_id, version_id, _payload(token_payload),
+        request=request, reuse=reuse,
     )
     return APIResponse(
         success=True,
-        data=AnalysisService.serialize(analysis),
+        data={**AnalysisService.serialize(analysis),
+               "reused": bool(getattr(analysis, "_reused", False))},
         message="Claim analysis completed",
     )
 
@@ -62,6 +67,7 @@ def analyze_product(
     product_id: int,
     version_id: int,
     request: Request,
+    reuse: bool = True,
     token_payload: dict = Depends(verify_token),
     db: Session = Depends(get_db),
 ):
@@ -71,14 +77,16 @@ def analyze_product(
     Orchestrates a preliminary product classification and a claim/evidence
     review, then derives target-market considerations and expert-review
     recommendations. Stages owned by later phases are listed explicitly in
-    ``deferred_components``.
+    ``deferred_components``. ``reuse=false`` forces a fresh model run.
     """
     analysis = AnalysisService.analyze_product(
-        db, product_id, version_id, _payload(token_payload), request=request
+        db, product_id, version_id, _payload(token_payload),
+        request=request, reuse=reuse,
     )
     return APIResponse(
         success=True,
-        data=AnalysisService.serialize(analysis),
+        data={**AnalysisService.serialize(analysis),
+               "reused": bool(getattr(analysis, "_reused", False))},
         message="Analysis completed",
     )
 

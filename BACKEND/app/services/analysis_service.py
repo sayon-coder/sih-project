@@ -64,6 +64,7 @@ from app.models import (
 )
 from app.services.audit_service import AuditService
 from app.utils.authorization import get_accessible_version
+from app.config import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -125,6 +126,11 @@ class AnalysisService:
         db.add(analysis)
         db.commit()
         db.refresh(analysis)
+        # A new run changes the overview history section for this version.
+        try:
+            AnalysisService._touch_overview_cache(version.id)
+        except Exception:
+            pass
         return analysis
 
     @staticmethod
@@ -158,6 +164,63 @@ class AnalysisService:
         )
         return analysis
 
+    @staticmethod
+    def _find_reusable(
+        db: Session,
+        version: ProductVersion,
+        analysis_type: AnalysisType,
+        results_match=None,
+    ) -> Optional[Analysis]:
+        """Return the newest COMPLETED run for the *unchanged* content, if any.
+
+        An analysis is an immutable advisory record of (version, content hash).
+        Re-running the LLM pipeline on identical content can only reproduce
+        the same verdicts (modulo model nondeterminism), so the stored row is
+        returned instead of spending another paid model run. Any content edit
+        changes ``content_hash`` and is an automatic miss.
+
+        ``results_match`` (optional) further narrows the search inside the
+        stored ``results`` payload - needed when one analysis type covers
+        several distinct workflows (e.g. patent search vs feature compare).
+        """
+        if not get_settings().cache_analysis_reuse:
+            return None
+        rows = (
+            db.query(Analysis)
+            .filter(
+                Analysis.product_version_id == version.id,
+                Analysis.analysis_type == analysis_type,
+                Analysis.status == AnalysisStatus.COMPLETED,
+            )
+            .order_by(Analysis.created_at.desc(), Analysis.id.desc())
+            .limit(10)
+            .all()
+        )
+        for row in rows:
+            try:
+                stored = json.loads(row.results or "{}")
+            except (json.JSONDecodeError, TypeError):
+                continue
+            if stored.get("content_hash") != version.content_hash:
+                continue
+            if results_match is not None:
+                try:
+                    if not results_match(stored):
+                        continue
+                except Exception:
+                    continue
+            return row
+        return None
+
+    @staticmethod
+    def _touch_overview_cache(version_id: int) -> None:
+        """A new run changes the history section of the overview aggregate."""
+        from app.services.overview_service import invalidate_overview_cache
+        try:
+            invalidate_overview_cache(version_id)
+        except Exception:
+            pass
+
     # ============================================
     # Claim analysis
     # ============================================
@@ -169,13 +232,29 @@ class AnalysisService:
         version_id: int,
         user_id: int,
         request: Optional[Request] = None,
+        reuse: bool = True,
     ) -> Analysis:
         """
         Review every claim on a version against the accessible corpus.
 
         Returns the persisted ``Analysis`` row (type ``CLAIM_ANALYSIS``).
+        When ``reuse`` is true (default) and a COMPLETED run already exists
+        for the version's current content hash, that row is returned without
+        spending another model run; pass ``reuse=False`` to force a fresh run.
         """
         version = AnalysisService._version(db, product_id, version_id, user_id)
+
+        if reuse:
+            hit = AnalysisService._find_reusable(
+                db, version, AnalysisType.CLAIM_ANALYSIS
+            )
+            if hit is not None:
+                logger.info(
+                    "Reusing claim analysis %s for version %s (hash %s)",
+                    hit.id, version.id, (version.content_hash or "")[:12],
+                )
+                hit._reused = True  # transient flag for the router, not persisted
+                return hit
 
         claims = (
             db.query(Claim)
@@ -260,6 +339,7 @@ class AnalysisService:
         version_id: int,
         user_id: int,
         request: Optional[Request] = None,
+        reuse: bool = True,
     ) -> Analysis:
         """
         Orchestrate a comprehensive preliminary review of a version.
@@ -267,9 +347,24 @@ class AnalysisService:
         Runs the claim review and a preliminary classification, then derives
         target-market considerations and expert-review recommendations. Stages
         owned by later phases are reported as ``deferred_components``.
+        When ``reuse`` is true (default) and a COMPLETED run already exists
+        for the version's current content hash, that row is returned without
+        spending another model run; pass ``reuse=False`` to force a fresh run.
         """
         version = AnalysisService._version(db, product_id, version_id, user_id)
         product: Product = version.product
+
+        if reuse:
+            hit = AnalysisService._find_reusable(
+                db, version, AnalysisType.COMPREHENSIVE
+            )
+            if hit is not None:
+                logger.info(
+                    "Reusing comprehensive analysis %s for version %s (hash %s)",
+                    hit.id, version.id, (version.content_hash or "")[:12],
+                )
+                hit._reused = True  # transient flag for the router, not persisted
+                return hit
 
         claims = (
             db.query(Claim)

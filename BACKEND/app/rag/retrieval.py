@@ -23,6 +23,7 @@ from app.rag.query_expansion import expand_query_terms
 from app.rag.reranker import rerank
 from app.rag.schemas import MetadataFilter, RetrievedChunk
 from app.rag.vector_search import QUERY_PREFIX, vector_search
+from app.utils.cache import cache
 
 logger = logging.getLogger(__name__)
 
@@ -86,8 +87,23 @@ def hybrid_retrieve(
     try:
         embedding_provider = get_embedding_provider()
         prefixed_query = QUERY_PREFIX + expanded_query
-        query_embedding = embedding_provider.embed_one(prefixed_query)
-        embedding_dim = embedding_provider.dimension
+        # Embedding the same text twice is pure waste (deterministic model
+        # output, CPU-bound). Cache by normalised text; filters still apply
+        # downstream in vector_search, so sharing the vector is safe.
+        emb_key = f"emb:{prefixed_query.strip().lower()}" if settings.cache_enabled else None
+        if emb_key is not None:
+            cached_vec = cache.get(emb_key)
+            if cached_vec is not None:
+                query_embedding, embedding_dim = cached_vec
+        if query_embedding is None:
+            query_embedding = embedding_provider.embed_one(prefixed_query)
+            embedding_dim = embedding_provider.dimension
+            if emb_key is not None:
+                cache.set(
+                    emb_key,
+                    (query_embedding, embedding_dim),
+                    ttl=settings.cache_embedding_ttl_seconds,
+                )
     except Exception as exc:
         logger.warning("Embedding unavailable, using keyword search only: %s", exc)
 

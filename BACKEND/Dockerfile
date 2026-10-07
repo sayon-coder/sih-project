@@ -21,8 +21,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY requirements.txt requirements-slim.txt ./
+# Free-tier VMs (1 GB RAM) cannot run torch/sentence-transformers: build with
+# --build-arg REQUIREMENTS_FILE=requirements-slim.txt for a keyword-only
+# backend (retrieval degrades openly, everything else works).
+ARG REQUIREMENTS_FILE=requirements.txt
+RUN pip install --no-cache-dir -r ${REQUIREMENTS_FILE}
 
 COPY alembic.ini alembic/ ./alembic/
 COPY alembic ./alembic

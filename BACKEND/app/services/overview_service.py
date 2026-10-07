@@ -28,6 +28,7 @@ from enum import Enum
 from typing import Any, Dict, List, Optional
 
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 
 from app.analysis.classifier import evaluate_classification_gaps
 from app.analysis.ip_schemas import (
@@ -58,8 +59,81 @@ from app.services.disclosure_service import (
 from app.services.ip_service import IPService
 from app.services.version_content import load_version_content
 from app.services.version_snapshot import build_version_content
+from app.config import get_settings
+from app.utils.cache import cache, CACHED_MARKER
 
 logger = logging.getLogger(__name__)
+
+
+# ======================================================================
+# Response cache: the overview is a pure stored-data aggregate (~12-15
+# sequential queries). The key carries the full data revision - content
+# hash plus the max row id of every run table - so a cache hit is never
+# wrong by content, only older than the TTL. Writers invalidate the
+# version prefix (analysis persist, disclosure create, patent-record
+# write); content edits change the hash and miss automatically.
+# ======================================================================
+
+OVERVIEW_NAMESPACE = "overview"
+
+
+def _overview_revision(db: Session, version_id: int) -> str:
+    """Three indexed MAX lookups - milliseconds even on Supabase free."""
+    try:
+        max_a = db.query(func.max(Analysis.id)).filter(
+            Analysis.product_version_id == version_id
+        ).scalar() or 0
+    except Exception:
+        max_a = 0
+    try:
+        max_d = db.query(func.max(Disclosure.id)).filter(
+            Disclosure.product_version_id == version_id
+        ).scalar() or 0
+    except Exception:
+        max_d = 0
+    try:
+        max_p = db.query(func.max(PatentRecord.id)).filter(
+            PatentRecord.product_version_id == version_id
+        ).scalar() or 0
+    except Exception:
+        max_p = 0
+    return f"a{max_a}d{max_d}p{max_p}"
+
+
+def build_overview_cached(
+    db: Session,
+    product: Product,
+    version: ProductVersion,
+    user_id: Optional[int] = None,
+) -> Dict[str, Any]:
+    """Cached front for :func:`build_overview` (same return shape + marker).
+
+    The ``served_from_cache`` flag is honest metadata for the UI/debugging:
+    True means this exact revision was built earlier inside the TTL window.
+    """
+    settings = get_settings()
+    if not settings.cache_enabled:
+        return build_overview(db, product, version, user_id=user_id)
+    revision = _overview_revision(db, version.id)
+    key = (
+        f"{OVERVIEW_NAMESPACE}:v{version.id}:"
+        f"h{version.content_hash or 'none'}:{revision}:u{user_id}"
+    )
+    hit = cache.get(key)
+    if hit is not None:
+        # Shallow copy: callers must never mutate the stored object.
+        out = dict(hit)
+        out[CACHED_MARKER] = True
+        return out
+    fresh = build_overview(db, product, version, user_id=user_id)
+    fresh[CACHED_MARKER] = False
+    cache.set(key, fresh, ttl=settings.cache_overview_ttl_seconds)
+    return fresh
+
+
+def invalidate_overview_cache(version_id: int) -> int:
+    """Drop every cached overview for one version. Returns rows dropped."""
+    return cache.invalidate_prefix(f"{OVERVIEW_NAMESPACE}:v{version_id}:")
 
 
 # ======================================================================
@@ -1797,7 +1871,7 @@ def overview_context_for_chat(
     as if they were.
     """
     try:
-        overview = build_overview(db, product, version, user_id=None)
+        overview = build_overview_cached(db, product, version, user_id=None)
     except Exception as exc:  # pragma: no cover - defensive: chat must not fail
         logger.warning("Could not build overview context for chat: %s", exc)
         return None

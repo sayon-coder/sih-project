@@ -1,0 +1,38 @@
+# Production overlay for a single free-tier GCP VM (e2-micro, 1 GB RAM).
+#
+#   docker compose -f docker-compose.yml -f docker-compose.gcp.yml up -d --build
+#
+# What it changes vs local dev:
+# - backend builds with requirements-slim.txt (no torch/sentence-transformers;
+#   retrieval runs keyword-only, everything else works),
+# - containers restart automatically after a VM reboot,
+# - PUBLIC_BASE_URL points at the VM's public address (set PUBLIC_IP before
+#   bringing the stack up; the GCE startup script does this automatically),
+# - the frontend is published on port 80 (plain HTTP; see gcp/DEPLOY_GCP.md
+#   for the optional HTTPS follow-up).
+services:
+  postgres:
+    # The GCE startup script exports a generated DB_PASSWORD; local dev
+    # keeps the 'ipsakti' default from the base file.
+    environment:
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-ipsakti}
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./BACKEND
+      args:
+        REQUIREMENTS_FILE: requirements-slim.txt
+    environment:
+      DATABASE_URL: postgresql://ipsakti:${DB_PASSWORD:-ipsakti}@postgres:5432/ipsakti
+      # Site root (the app appends /reviews itself for email links).
+      PUBLIC_BASE_URL: http://${PUBLIC_IP:?set PUBLIC_IP to the VM address}
+    restart: unless-stopped
+
+  postgres:
+    restart: unless-stopped
+
+  frontend:
+    ports:
+      - "80:80"
+    restart: unless-stopped

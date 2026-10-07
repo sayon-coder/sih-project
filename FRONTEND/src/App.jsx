@@ -112,13 +112,64 @@ async function authedFetch(token, path, init = {}) {
 }
 
 async function authFetch(path, opts = {}) {
-  return parseResponse(
-    await authedFetch(opts.accessToken, path, {
-      method: opts.method,
-      headers: jsonHeaders,
-      body: opts.body != null ? JSON.stringify(opts.body) : undefined,
+  const method = (opts.method || "GET").toUpperCase();
+  if (method === "GET") return cachedGet(path, opts);
+  try {
+    return await parseResponse(
+      await authedFetch(opts.accessToken, path, {
+        method: opts.method,
+        headers: jsonHeaders,
+        body: opts.body != null ? JSON.stringify(opts.body) : undefined,
+      })
+    );
+  } finally {
+    // Any write may change what a cached GET would return; drop the whole
+    // short-lived GET cache so the next read is fresh. Reads remain instant
+    // while navigating; writes pay one refetch.
+    bustGets();
+  }
+}
+
+// ---- Frontend response cache -------------------------------------------
+// Short-lived (30 s) in-memory cache for idempotent GETs plus dedup of
+// concurrent identical requests (React StrictMode double-mounts every page,
+// which used to double every Supabase-backed query).
+//
+// Correctness: keyed by path only, cleared on login/logout/session-expiry
+// (see AuthProvider) and on every mutation (see authFetch/bustGets).
+// Never used for auth, chat, uploads, or permission-gated payloads.
+const GET_CACHE_TTL_MS = 30000;
+const getCache = new Map(); // path -> { at, data }
+const inflightGets = new Map(); // path -> promise
+
+function cachedGet(path, opts = {}) {
+  const now = Date.now();
+  const hit = getCache.get(path);
+  if (hit && now - hit.at < GET_CACHE_TTL_MS) return hit.data;
+  const inflight = inflightGets.get(path);
+  if (inflight) return inflight;
+  const run = parseResponse(
+    authedFetch(opts.accessToken, path, { method: "GET", headers: jsonHeaders })
+  )
+    .then((data) => {
+      getCache.set(path, { at: Date.now(), data });
+      return data;
     })
-  );
+    .finally(() => {
+      inflightGets.delete(path);
+    });
+  inflightGets.set(path, run);
+  return run;
+}
+
+function bustGets(prefix) {
+  if (!prefix) {
+    getCache.clear();
+    return;
+  }
+  for (const key of [...getCache.keys()]) {
+    if (key.startsWith(prefix)) getCache.delete(key);
+  }
 }
 
 async function postJson(path, body) {
@@ -281,7 +332,7 @@ const api = {
         method: "POST",
         body: formData,
       })
-    ),
+    ).finally(() => bustGets()),
   deleteDocument: (accessToken, id) =>
     authFetch(`/knowledge/documents/${id}`, { accessToken, method: "DELETE" }),
   reindexDocument: (accessToken, id) =>
@@ -505,6 +556,7 @@ function AuthProvider({ children }) {
       const data = await api.login({ email, password });
       const t = data.data?.access_token || data.access_token;
       if (!t) throw new Error("Login succeeded but no token was returned");
+      bustGets(); // a different user must never see the previous cache
       setAccessToken(t);
       try {
         await refreshUser(t);
@@ -520,6 +572,7 @@ function AuthProvider({ children }) {
     try {
       await api.logout();
     } finally {
+      bustGets();
       setAccessToken(null);
       setUser(null);
       setStatus("anonymous");
@@ -535,6 +588,7 @@ function AuthProvider({ children }) {
   useEffect(() => {
     tokenRefreshed = (t) => setAccessToken(t);
     sessionExpired = () => {
+      bustGets();
       liveAccessToken = null;
       setAccessToken(null);
       setUser(null);
@@ -5399,6 +5453,10 @@ function KnowledgeBase() {
       </div>
 
       <div style={{ marginTop: "24px" }}>
+        <OfficialSourcesSection accessToken={accessToken} />
+      </div>
+
+      <div style={{ marginTop: "24px" }}>
         <Card title="Corpus documents">
           <div className="kb-toolbar">
             <label className="checkbox">
@@ -5454,10 +5512,6 @@ function KnowledgeBase() {
             </ul>
           )}
         </Card>
-      </div>
-
-      <div style={{ marginTop: "24px" }}>
-        <OfficialSourcesSection accessToken={accessToken} />
       </div>
     </div>
   );
@@ -6815,6 +6869,25 @@ const css = `
   .field input:focus, .field select:focus, textarea:focus {
     outline: 2px solid #1E3A2F; outline-offset: 1px; border-color: transparent;
   }
+  /* Base look for controls that sit OUTSIDE a .field wrapper (search toolbars,
+     graph/disclosure/clarifying-question rows). :where() keeps specificity at
+     zero, so every scoped rule (.field, .input-line, .auth-lp-field, ...) still
+     wins and only truly bare controls are affected. Checkboxes, radios, file
+     and button inputs stay native. */
+  :where(
+    input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="button"]):not([type="submit"]),
+    select
+  ) {
+    padding: 11px 13px; border: 1px solid #E4DACA;
+    border-radius: 8px; font-size: 14.5px; background: #FAF5EC; color: #1C2420;
+  }
+  :where(
+    input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="button"]):not([type="submit"]):focus,
+    select:focus
+  ) {
+    outline: 2px solid #1E3A2F; outline-offset: 1px; border-color: transparent;
+  }
+  :where(input)::placeholder { color: #9AA29E; }
   textarea { width: 100%; padding: 10px 12px; border: 1px solid #dcd7cc; border-radius: 6px; font-size: 14px; background: #f7f6f2; resize: vertical; }
 
   .inline-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }

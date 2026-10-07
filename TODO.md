@@ -604,8 +604,52 @@ renamed or modified.
 - [ ] Persist the chat panel metadata on `chat_messages` so history reloads show it (pre-existing open item)
 - [ ] Bhashini API key (translation stays in honest fallback until provided)
 
+## GCP free-tier hosting (fully on GCP, Supabase replaced) - IN PROGRESS 2026-10-07
+
+- [x] `BACKEND/Dockerfile`: `REQUIREMENTS_FILE` build arg (default `requirements.txt`; slim for 1 GB VMs)
+- [x] `docker-compose.gcp.yml`: slim backend build, generated DB password, `PUBLIC_BASE_URL` from `PUBLIC_IP`, port 80, restart policies
+- [x] `gcp/gce-startup.sh`: swap, docker, clone/pull, stable generated secrets, `.env` from metadata, migration wait, role seed, corpus ingest + jurisdiction fix, rebuild-only-on-change
+- [x] `gcp/DEPLOY_GCP.md`: exact gcloud commands, static IP, verify, update, HTTPS follow-up, troubleshooting
+- [ ] User: commit + push, create GCP project, run the §3 VM command with the three secrets
+- [ ] First-boot watch + verify (§5), confirm chat/reviews/email from the public URL
+
 ## Legend
 - [ ] Not started
 - [~] In progress
 - [x] Completed
 - [!] Blocked
+
+---
+
+## Answer-level API caching (chat + screenings) - DONE 2026-10-07
+
+- [x] Chat answer cache keyed on every answer-shaping input (query, languages, provider, jurisdiction mode, filters, product context hash, attachment text hash, private-doc set, corpus + run-history revision); TTL `CACHE_CHAT_TTL_SECONDS=600`
+- [x] Cache hit still persists both messages + audit (`served_from_cache: true`) - history and audit stay complete
+- [x] Outage/error answers never cached (`answer_from_error`)
+- [x] Screening reuse with `reuse` query param + honest `reused` flag: patent search (kind-filtered; also fixes duplicate candidate records), biodiversity/TK content-only runs; `include_sources=true` never reused
+- [x] `_find_reusable(..., results_match=...)` predicate for shared analysis types
+- [x] `tests/conftest.py`: autouse cache clear between tests + autouse SMTP blanking (`.env` real creds were making tests send real email)
+- [x] `tests/test_cache.py`: 21 passed (7 new: chat hit skips retrieval, corpus revision busts, scope change busts; screening reuse/fresh/opt-out)
+- [x] Full suite: **529 passed, 0 failed**; live: repeat question 25-69 s -> 5-6 s (`Chat cache hit` in server log, identical answer)
+- [ ] NOT cached by design: outage answers, corpus-dependent `include_sources=true` screenings, patent compare, change-impact (deterministic/cheap)
+
+---
+
+## Response-cache layer (no Redis, free-tier) - DONE 2026-10-07
+
+- [x] `BACKEND/app/utils/cache.py`: thread-safe TTL LRU cache, namespaces, prefix invalidation, per-namespace hit/miss stats
+- [x] `app/config.py` + `.env.example`: `CACHE_*` settings (master switch, TTLs, analysis-reuse flag)
+- [x] `app/database.py`: `pool_recycle=300` + `connect_timeout=10` (Supabase pooler drops idles)
+- [x] Analysis reuse by `(version, content_hash, type)` + `?reuse=false` opt-out + `reused` flag; overview invalidated on persist
+- [x] Overview cached by `(version, hash, max run ids, user)` - key carries the data revision, so hits are never wrong by content; chat context reuses it; invalidated on analysis/disclosure/patent-record writes
+- [x] Dashboard rewritten to `COUNT(*)` (was `.all()+len()`) + per-user 60 s cache
+- [x] Knowledge status + document list cached, invalidated on upload/delete/reindex/bulk-index
+- [x] Official-sources registry list/topics cached (static data, 300 s); graph node list cached, busted on rebuild
+- [x] Query-embedding cache by normalised text (saves CPU on repeats; filters still apply downstream)
+- [x] `GET /api/admin/cache/stats` + `POST /api/admin/cache/clear` (ADMIN-only)
+- [x] Frontend: 30 s GET cache + inflight dedup (kills StrictMode double-fetch); busted on any mutation + login/logout/expiry
+- [x] `tests/test_cache.py`: 14 tests (cache unit + reuse + overview/disclosure/dashboard/admin)
+- [x] Live vs Supabase: overview 7585 ms -> 1270 ms repeat; dashboard cached, counts correct
+- [x] Full affected suites green: analysis/overview/admin/registry (73) + acceptance/graph/disclosures/patents/rag (110)
+- [ ] NOT cached by design: auth, mutations, chat with product/attachments/private docs, permission-gated payloads
+- [ ] Deliberately not built: Redis (no budget/ops), background ingest workers (next step if uploads still feel slow)

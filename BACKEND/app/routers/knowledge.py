@@ -32,6 +32,7 @@ from app.models.rag_models import SourceDocument
 from app.rag.ingestion import ingest_document
 from app.schemas.schemas import APIResponse
 from app.services.audit_service import AuditService
+from app.utils.cache import cache, cache_invalidate_prefix
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/knowledge", tags=["Knowledge Base"])
@@ -121,7 +122,12 @@ def get_corpus_status(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_model),
 ):
-    """Return corpus-wide statistics."""
+    """Return corpus-wide statistics (cached 30 s; writes invalidate)."""
+    settings = get_settings()
+    if settings.cache_enabled:
+        hit = cache.get("knowledge:status")
+        if hit is not None:
+            return CorpusStatus(**hit)
     from sqlalchemy import func
     settings = get_settings()
 
@@ -135,7 +141,7 @@ def get_corpus_status(
     from app.models.rag_models import SourceChunk
     total_chunks = db.query(func.count(SourceChunk.id)).scalar() or 0
 
-    return CorpusStatus(
+    payload = dict(
         total_documents=total,
         indexed_documents=indexed,
         pending_documents=pending,
@@ -145,6 +151,9 @@ def get_corpus_status(
         private_documents=private,
         demo_mode=settings.demo_mode,
     )
+    if settings.cache_enabled:
+        cache.set("knowledge:status", payload, ttl=settings.cache_status_ttl_seconds)
+    return CorpusStatus(**payload)
 
 
 @router.post("/index", response_model=APIResponse)
@@ -182,6 +191,9 @@ def index_pending_documents(
             logger.warning("Bulk indexing failed for document %d", doc.id)
             failed += 1
 
+    if attempted:
+        cache_invalidate_prefix("knowledge:")
+
     return APIResponse(
         success=True,
         data={
@@ -209,6 +221,16 @@ def list_documents(
     user_roles = [r.role.name for r in current_user.roles]
     is_admin = RoleName.ADMIN in user_roles
 
+    settings = get_settings()
+    cache_key = (
+        f"knowledge:list:u{current_user.id}:a{int(is_admin)}:"
+        f"t{source_type}:p{is_public}:m{int(my_uploads_only)}"
+    )
+    if settings.cache_enabled:
+        hit = cache.get(cache_key)
+        if hit is not None:
+            return [DocumentResponse(**d) for d in hit]
+
     q = db.query(SourceDocument)
     if not is_admin:
         q = q.filter(
@@ -223,7 +245,14 @@ def list_documents(
         q = q.filter(SourceDocument.is_public == is_public)
 
     docs = q.order_by(SourceDocument.created_at.desc()).all()
-    return [_doc_to_response(d) for d in docs]
+    out = [_doc_to_response(d) for d in docs]
+    if settings.cache_enabled:
+        cache.set(
+            cache_key,
+            [d.model_dump() for d in out],
+            ttl=settings.cache_status_ttl_seconds,
+        )
+    return out
 
 
 @router.post("/documents", response_model=DocumentResponse, status_code=status.HTTP_201_CREATED)
@@ -328,6 +357,7 @@ def upload_document(
         },
         request=request,
     )
+    cache_invalidate_prefix("knowledge:")
 
     return _doc_to_response(doc)
 
@@ -381,6 +411,7 @@ def delete_document(
         details=audit_details,
         request=request,
     )
+    cache_invalidate_prefix("knowledge:")
 
 
 @router.post("/documents/{document_id}/reindex", response_model=DocumentResponse)
@@ -408,6 +439,7 @@ def reindex_document(
         details={"title": doc.title, "status": doc.status, "chunk_count": doc.chunk_count},
         request=request,
     )
+    cache_invalidate_prefix("knowledge:")
 
     return _doc_to_response(doc)
 

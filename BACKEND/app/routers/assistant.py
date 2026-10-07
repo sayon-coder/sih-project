@@ -10,6 +10,7 @@ Endpoints:
 """
 from __future__ import annotations
 
+import copy
 import hashlib
 import json
 import logging
@@ -19,11 +20,13 @@ from typing import Dict, List, Literal, Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from pydantic import BaseModel, Field
+from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.utils import get_current_user_model
+from app.utils.cache import cache
 from app.bhashini.translator import from_canonical_answer, to_canonical_query
 from app.database import get_db
 from app.llm.provider import get_llm_provider, get_llm_provider_for
@@ -241,6 +244,66 @@ class SessionDetailOut(BaseModel):
 
 
 # -------------------------------------------------------
+# Answer cache (in-process TTL - see app/utils/cache.py)
+#
+# A chat turn costs one embedding + two retrieval arms + cross-encoder
+# rerank + a paid LLM call. An identical question in an identical context
+# does not need to pay that again. The key below carries EVERY input that
+# shapes the answer (query, languages, provider, jurisdiction scope,
+# filters, product content, attachment text, private-document set, corpus
+# revision, product run history), so a hit can never be wrong by content -
+# only older than the TTL. Conversation history still records the turn.
+# -------------------------------------------------------
+
+def _chat_corpus_revision(db: Session, req: "ChatRequest") -> str:
+    """Cheap data revision: corpus size + max id, plus the product's run
+    history when the question is product-scoped. A handful of indexed
+    aggregates - milliseconds even on the Supabase free tier."""
+    count, max_id = db.query(
+        func.count(SourceDocument.id), func.max(SourceDocument.id)
+    ).one()
+    revision = f"d{count}x{max_id or 0}"
+    if req.product_version_id:
+        from app.services.overview_service import _overview_revision
+        revision += ":" + _overview_revision(db, req.product_version_id)
+    return revision
+
+
+def _chat_answer_key(
+    current_user: User,
+    req: "ChatRequest",
+    canonical_query: str,
+    document_context: Optional[str],
+    product_context: Optional[dict],
+    private_doc_ids,
+    revision: str,
+) -> str:
+    def _h(text: str) -> str:
+        return hashlib.sha256(text.encode("utf-8")).hexdigest()[:40]
+
+    basis = "|".join(
+        [
+            f"u{current_user.id}",
+            f"q={_h((canonical_query or '').strip().casefold())}",
+            f"il={req.input_language}",
+            f"ol={req.output_language}",
+            f"p={req.provider or 'groq'}",
+            f"jm={(req.jurisdiction_mode or 'both').lower()}",
+            f"fs={','.join(sorted(req.filter_source_types or []))}",
+            f"fj={','.join(sorted(req.filter_jurisdictions or []))}",
+            f"priv={int(bool(req.include_my_documents))}",
+            f"pid={req.product_id or 0}",
+            f"vid={req.product_version_id or 0}",
+            f"pc={_h(json.dumps(product_context, sort_keys=True, default=str) if product_context else '')}",
+            f"dc={_h(document_context or '')}",
+            f"pd={','.join(str(i) for i in sorted(private_doc_ids))}",
+            f"rev={revision}",
+        ]
+    )
+    return "chat:" + _h(basis)
+
+
+# -------------------------------------------------------
 # Routes
 # -------------------------------------------------------
 
@@ -370,6 +433,82 @@ def chat(
     )
     retrieve_call = scope_tracker.wrap(hybrid_retrieve)
 
+    # -------------------------------------------------------
+    # 4. Answer cache: identical question + identical context ->
+    #    stored answer, skipping retrieval, rerank and the LLM.
+    #    The user message above is persisted either way, and the
+    #    cached answer is persisted too, so conversation history
+    #    is complete and the turn is auditable like any other.
+    # -------------------------------------------------------
+    # getattr: some tests stub get_settings() with a partial object
+    # (e.g. SimpleNamespace(debug=True)); no cache config -> no cache.
+    cache_settings = get_settings()
+    chat_key: Optional[str] = None
+    if getattr(cache_settings, "cache_enabled", False):
+        chat_key = _chat_answer_key(
+            current_user,
+            req,
+            canonical_query,
+            document_context,
+            product_context,
+            private_doc_ids,
+            _chat_corpus_revision(db, req),
+        )
+        cached_answer = cache.get(chat_key)
+        if cached_answer is not None:
+            logger.info(
+                "Chat cache hit: user=%s session=%s q=%r",
+                current_user.id, session.id, req.message[:80],
+            )
+            resp = ChatResponse(
+                **copy.deepcopy(cached_answer),
+                session_id=session.id,
+                message_id=0,
+            )
+            assistant_msg = ChatMessage(
+                session_id=session.id,
+                role="assistant",
+                content=resp.answer,
+                citations_json=json.dumps(
+                    [c.model_dump() for c in resp.citations]
+                ),
+                sources_json=json.dumps([
+                    {
+                        "chunk_id": c.chunk_id,
+                        "title": c.title,
+                        "source_type": c.source_type,
+                    }
+                    for c in resp.citations
+                ]),
+                insufficient_evidence=resp.insufficient_evidence,
+                language=req.output_language,
+            )
+            db.add(assistant_msg)
+            db.commit()
+            db.refresh(assistant_msg)
+            resp.message_id = assistant_msg.id
+            AuditService.log_action(
+                db,
+                user_id=current_user.id,
+                action="chat_query",
+                resource="chat_session",
+                resource_id=session.id,
+                details={
+                    "session_id": session.id,
+                    "message_id": assistant_msg.id,
+                    "overall_status": resp.overall_status,
+                    "citation_count": len(resp.citations),
+                    "insufficient_evidence": resp.insufficient_evidence,
+                    "provider": req.provider or "groq",
+                    "input_language": req.input_language,
+                    "output_language": req.output_language,
+                    "product_id": req.product_id,
+                    "product_version_id": req.product_version_id,
+                    "served_from_cache": True,
+                },
+            )
+            return resp
+
     launch_question = is_launch_question(req.message)
     content_doc = snapshot_content(product_context)
     has_classification = (
@@ -415,6 +554,9 @@ def chat(
     partial_result: Optional[PartialAnswerResult] = None
     chunks: List = []
     retrieval_debug: Dict[str, int] = {}
+    # A transient outage answer must never be cached - the next identical
+    # question deserves a real attempt at a working answer.
+    answer_from_error = False
 
     if should_decompose(canonical_query):
         try:
@@ -437,6 +579,7 @@ def chat(
             retrieval_debug = dict(partial_result.debug)
         except Exception as exc:
             logger.error("Selective RAG generation error: %s", exc, exc_info=True)
+            answer_from_error = True
             partial_result = processing_error_result(
                 [
                     SectionContext(
@@ -469,6 +612,7 @@ def chat(
             )
         except Exception as exc:
             logger.error("RAG generation error: %s", exc, exc_info=True)
+            answer_from_error = True
             from app.rag.citation import INSUFFICIENT_EVIDENCE_MESSAGE
             rag_response = StructuredRAGResponse(
                 answer=INSUFFICIENT_EVIDENCE_MESSAGE,
@@ -743,9 +887,9 @@ def chat(
     )
 
     # -------------------------------------------------------
-    # 8. Return response
+    # 8. Return response (store it first when the turn is clean)
     # -------------------------------------------------------
-    return ChatResponse(
+    resp = ChatResponse(
         session_id=session.id,
         message_id=assistant_msg.id,
         answer=final_answer,
@@ -780,6 +924,16 @@ def chat(
         claim_reviews=claim_reviews,
         debug=debug_info,
     )
+    if chat_key is not None and not answer_from_error:
+        # Session/message ids belong to this turn only; everything else is
+        # the reusable answer content.
+        cache.set(
+            chat_key,
+            resp.model_dump(exclude={"session_id", "message_id"}),
+            ttl=cache_settings.cache_chat_ttl_seconds,
+        )
+        logger.info("Chat answer cached: user=%s", current_user.id)
+    return resp
 
 
 @router.post(

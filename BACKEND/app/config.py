@@ -99,6 +99,30 @@ class Settings(BaseSettings):
     debug: bool = False
 
     # -------------------------------------------------------
+    # Response cache (in-process TTL; zero new infra - see app/utils/cache.py)
+    # -------------------------------------------------------
+    # The project runs on free-tier hosting with no Redis budget. These
+    # settings bound the process-local cache; every cached payload also
+    # carries a data revision (content hash / max row id) so a stale copy
+    # can only be old by TTL seconds, never wrong by content.
+    cache_enabled: bool = True
+    cache_max_entries: int = 2048
+    cache_default_ttl_seconds: int = 60
+    cache_overview_ttl_seconds: int = 300
+    cache_dashboard_ttl_seconds: int = 60
+    cache_status_ttl_seconds: int = 30
+    cache_registry_ttl_seconds: int = 300
+    cache_graph_ttl_seconds: int = 60
+    cache_embedding_ttl_seconds: int = 600
+    # Chat answers: the key carries a full data revision (corpus + product
+    # run history), so a hit is never wrong by content. The TTL only bounds
+    # how long an identical question keeps the exact same wording.
+    cache_chat_ttl_seconds: int = 600
+    # Reuse a COMPLETED analysis when the version content hash is unchanged
+    # instead of paying for a fresh LLM run. ?reuse=false opts out per call.
+    cache_analysis_reuse: bool = True
+
+    # -------------------------------------------------------
     # Review-desk email notifications (stdlib smtplib; best-effort -
     # review creation never fails when these are unset or sending fails)
     # -------------------------------------------------------

@@ -2,6 +2,225 @@
 
 ---
 
+## Entry: 2026-10-07 (Answer-level API caching: chat + screening reuse)
+
+### Task
+"APIs are taking too much time while answering" - extend the response-cache
+layer to the *answering* endpoints themselves: `POST /api/assistant/chat`
+(embedding + 2 retrieval arms + cross-encoder rerank + paid LLM per turn)
+and the three screening POSTs that persist a fresh analysis run on every
+click.
+
+### What was implemented
+- **Chat answer cache** (`app/routers/assistant.py`):
+  - Key = user id + SHA of canonical query + input/output language +
+    provider + jurisdiction mode + source/jurisdiction filters +
+    include_my_documents + product ids + product-context hash +
+    document-context (attachment text) hash + private-document id set +
+    data revision (`source_documents` count/max id, plus
+    `_overview_revision` = max analysis/disclosure/patent-record ids for
+    product-scoped questions). Every input that shapes the answer is in
+    the key, so a hit is never wrong by content - only older than the TTL
+    (`CACHE_CHAT_TTL_SECONDS`, default 600 s).
+  - On a hit: the user message (persisted before the lookup) and the
+    cached answer are both persisted, the audit entry is written with
+    `served_from_cache: true`, and the response returns with this turn's
+    `session_id`/`message_id` - conversation history stays complete and
+    the turn is fully auditable. Retrieval, rerank and the LLM are skipped.
+  - On a miss: the final `ChatResponse` minus session/message ids is
+    stored. Answers produced by a transient LLM/retrieval outage
+    (`answer_from_error`) are NEVER cached - the next identical question
+    gets a real attempt.
+  - `getattr(settings, "cache_enabled", False)` because some tests stub
+    `get_settings()` with a partial `SimpleNamespace`.
+- **Screening reuse** (`app/services/ip_service.py` + `app/routers/ip.py`):
+  - `patents/search`, `biodiversity/screen`, `traditional-knowledge/screen`
+    accept `reuse=true|false` and return an honest `reused` flag. Reuse is
+    `_find_reusable` keyed on (version, content hash, analysis type) with a
+    new `results_match` predicate:
+    - patent search only reuses `kind == "patent_screening"` rows (the
+      shared PATENT_SCREENING type also stores feature comparisons) -
+      this also fixes duplicate candidate records on every re-click;
+    - biodiversity/TK reuse only content-only runs
+      (`collected.corpus_sources_requested is False`); any
+      `include_sources=true` run depends on the live corpus + the user's
+      private documents and is always re-executed.
+  - `_find_reusable(db, version, analysis_type, results_match=None)` in
+    `analysis_service.py`.
+- **Test isolation** (`tests/conftest.py`):
+  - autouse `_clean_response_cache` - the process-wide cache never leaks
+    between tests (fresh in-memory DBs reuse ids; a stale payload could
+    otherwise be served).
+  - autouse `_no_real_email` - blanks `smtp_host`/`smtp_username` on the
+    settings singleton. The git-ignored `BACKEND/.env` now carries real
+    SMTP credentials, so review-creating tests were genuinely emailing the
+    review desk during test runs (2 real sends observed in the full run);
+    tests that exercise sending pass explicit `smtp_*` args and stay valid.
+
+### Tests executed
+- `tests/test_cache.py`: **21 passed** (14 previous + 7 new: chat answer
+  hit skips retrieval, corpus revision busts the answer, different
+  jurisdiction scope never reuses; patent search reuse without duplicate
+  records, content edit forces fresh screening, biodiversity/TK reuse,
+  `?reuse=false` opt-out).
+- Full suite: **529 passed, 0 failed** (7 min) - includes the 2 notify
+  tests fixed by `_no_real_email` and the settings-stub fix in `chat()`.
+- Live verification against Supabase free tier (same server, same user):
+  - cold first question: **68.9 s** (69 s) -> stored
+    (`Chat answer cached: user=193`);
+  - identical repeat: **6.4 s** -> log shows
+    `Chat cache hit: user=193 session=72` with an identical answer;
+  - repeat inside the same session: **5.4 s**;
+  - a *different* question (cache miss): **24.8 s**.
+  - i.e. repeated questions drop from ~25-69 s to ~5-6 s. The residual
+    ~5 s is the free-tier write path (user message + assistant message +
+    audit commits), not retrieval/rerank/LLM - those are skipped.
+
+### Deliberately NOT cached (correctness over speed)
+- Chat turns with `answer_from_error` (outage answers).
+- Biodiversity/TK `include_sources=true` runs (corpus-dependent).
+- Patent `patents/compare` (cheap, deterministic, no records created).
+- Change-impact runs (deterministic diff, no LLM).
+
+---
+
+## Entry: 2026-10-07 (Response-cache layer - slow loads on Supabase free tier)
+
+### Task
+Parts of the app showed long loading spinners; Supabase free-tier round
+trips are slow. Request: a production-grade caching system with no new
+paid infra (no Redis budget).
+
+### Root causes (verified in code + old server log)
+- `GET .../overview` runs ~12-15 sequential queries per call, and the
+  chatbot re-ran the whole aggregate per message via
+  `overview_context_for_chat`.
+- `GET /api/dashboard` loaded ALL product/version ids into Python
+  (`.all()+len()`) to compute two integers.
+- Every `POST .../analyze` re-ran the full LLM pipeline even on unchanged
+  content (content hash was stamped but never consulted).
+- Every retrieval re-embedded the query text (CPU-bound BGE-M3).
+- Frontend: zero GET caching/dedup; StrictMode double-mount doubled every
+  query (visible in the old server log: products/graph/knowledge requested
+  in pairs).
+
+### What was implemented
+- New `BACKEND/app/utils/cache.py`: thread-safe TTL LRU (`max_entries`,
+  per-entry TTL), key namespaces, `invalidate_prefix`, per-namespace
+  hit/miss/eviction stats, `cached()` decorator. Zero new dependencies.
+- `app/config.py` + `.env.example`: `CACHE_ENABLED`, `CACHE_MAX_ENTRIES`,
+  per-area TTLs, `CACHE_ANALYSIS_REUSE` (all read at startup via lifespan).
+- `app/database.py`: `pool_recycle=300`, `connect_timeout=10` (free pooler
+  drops idle connections -> stalls).
+- Analysis reuse: `_find_reusable` returns the newest COMPLETED run whose
+  stored `content_hash` matches; `?reuse=false` forces fresh; responses
+  carry an honest `reused` flag. No existing test re-analyzes unchanged
+  content expecting two rows (verified by grep).
+- Overview: `build_overview_cached` keyed
+  `overview:v{id}:h{hash}:a{maxA}d{maxD}p{maxP}:u{user}` - the key carries
+  the data revision, so a hit is never wrong by content; `served_from_cache`
+  marker; invalidated on analysis persist, disclosure create (both
+  routers), patent-record writes; content edits change the hash (auto-miss).
+  Chat context uses the same cached builder.
+- Dashboard: `COUNT(*)` + join-filtered subqueries (no id lists cross the
+  network), per-(user,admin) 60 s cache with marker.
+- Knowledge status + doc list (per user/filter) cached, busted on
+  upload/delete/reindex/bulk-index. Registry list/topics cached 300 s
+  (static data). Graph node list cached 60 s, busted on rebuild.
+- Retrieval: embedding cached by normalised text 600 s (filters still
+  apply downstream in vector_search).
+- `GET /api/admin/cache/stats`, `POST /api/admin/cache/clear` (ADMIN-only).
+- Frontend (`App.jsx` api layer): 30 s GET cache + inflight dedup;
+  busted on any mutation, login, logout, session expiry. Auth/chat/uploads/
+  blobs never cached.
+- `on_event` deprecation avoided: lifespan handler used for cache config.
+
+### Tests executed
+- New `tests/test_cache.py`: **14 passed** (TTL/expiry/LRU/invalidate/
+  stats unit; reuse + hash-change + opt-out; overview hit + disclosure
+  bust; dashboard counts + marker; admin 403 + stats/clear).
+- Regressions: analysis/overview/admin/registry **73 passed**;
+  acceptance/graph/disclosures/patents/rag **110 passed**.
+- `vite build` clean; eslint 19 = baseline.
+- Live vs Supabase free (throwaway `cachelive@example.com`): overview
+  **7585 ms -> 1270 ms** repeat (`served_from_cache` false -> true);
+  dashboard cached with correct counts (1 product, 1 version).
+- Backend restarted with the new code (old PIDs 15088/16324 killed);
+  frontend dev server untouched (Vite picks up App.jsx automatically).
+
+### Deliberately NOT cached (correctness over speed)
+Auth, all mutations, chat with product context/attachments/private docs,
+permission-gated payloads, report PDFs. No Redis (cost/ops); no background
+ingest workers (next step if uploads still feel slow).
+
+---
+
+## Entry: 2026-10-07 (Global input/select base style — fix "straight bars")
+
+### Task
+On `/knowledge`, `/graph` and `/products/:id/versions/:versionId`, text inputs
+and selects rendered as thin, square, default-browser bars while `/reviews`
+looked properly styled (user screenshots 799-805).
+
+### Root cause
+The polished form style was scoped to `.field input, .field select` only.
+Bare `<input>`/`<select>` elements outside a `.field` wrapper (registry
+toolbar, graph search/path/agent forms, clarifying-question answers,
+disclosure row) had no author style at all and fell back to the UA default.
+
+### What was implemented
+- `FRONTEND/src/App.jsx` (global `css` block): a base rule wrapped in
+  `:where(...)` so its specificity stays 0 - it styles only truly bare
+  controls (bg `#FAF5EC`, border `#E4DACA`, radius 8px, padding 11/13,
+  14.5px, plus focus ring and placeholder colour) while every scoped rule
+  (`.field`, `.input-line` chat pill, `.auth-lp-field`, `.vd .inline-form`) keeps winning. Excludes checkbox/radio/file/button inputs so they stay native.
+
+### Tests executed (live, in-browser via computed styles)
+- `/knowledge` registry toolbar input + both selects: `rgb(250,245,236)`, 8px, 11px 13px, `rgb(228,218,202)` border.
+- `/graph` node search, path inputs, node-type select: same brand style.
+- Chat `.input-line` still 999px pill; `.field` inputs on `/products/new` unchanged; checkbox padding still 0 (native).
+- `vite build` clean; eslint 19 (pre-existing baseline).
+
+---
+
+## Entry: 2026-10-07 (GCP free-tier hosting artifacts)
+
+### Task
+Host the project fully on GCP (Supabase replaced too), frontend included,
+for $0/month: one always-free e2-micro VM + existing compose stack.
+
+### What was implemented
+- `BACKEND/Dockerfile`: `REQUIREMENTS_FILE` build arg (default
+  `requirements.txt`, so local dev is unchanged).
+- `docker-compose.gcp.yml` overlay: slim backend build (keyword-only RAG -
+  ingestion degrades openly with FTS vectors still written, so a fresh
+  `ingest_corpus.py` on the VM works), generated `DB_PASSWORD` for both
+  postgres and backend, `PUBLIC_BASE_URL` from `PUBLIC_IP`, frontend on
+  port 80, `restart: unless-stopped` everywhere.
+- `gcp/gce-startup.sh`: 2 GB swap (pip/npm builds OOM on 1 GB RAM without
+  it), Docker install, clone/pull `main`, stable generated DB password +
+  JWT secret in `/root/.ip-sakti/` (DB stays reachable across reboots),
+  VM-written `BACKEND/.env` (secrets from instance metadata, never the
+  repo), migration wait loop, `seed_roles.py`, conditional corpus ingest +
+  `fix_corpus_jurisdictions.py --apply`, image rebuild only when the
+  commit changed.
+- `gcp/DEPLOY_GCP.md`: exact gcloud commands (VM, firewall, static IP),
+  secret table, wait/verify steps, update flow (push + stop/start),
+  HTTPS follow-up, troubleshooting, free-tier limits.
+
+### Tests executed
+- Both compose files YAML-parse (services: postgres/backend/frontend).
+- No backend/frontend code changed, so no test re-run (last: 38/38
+  notify+reviews+attachments; vite build clean).
+
+### Open: needs the user (all in `gcp/DEPLOY_GCP.md`)
+Commit + push, GCP project, then the §3 VM command with `groq-api-key`
+(from local `BACKEND/.env`), optional `sarvam-api-key`, optional
+`smtp-password` (same Gmail app password as local). Then watch first
+boot (~20-40 min) and verify from the public URL.
+
+---
+
 ## Entry: 2026-10-05 (Chat PDF race fix + review-desk email resend)
 
 ### Bug 1: PDF attached but "no PDF document was provided"
@@ -41,6 +260,17 @@ Either hand it over or put these in `BACKEND/.env` directly:
 `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=587`, `SMTP_USERNAME=<gmail>`,
 `SMTP_PASSWORD=<16-char app password>`, `SMTP_USE_TLS=true`,
 `REVIEW_NOTIFY_EMAIL=sayonsawbib@gmail.com` (already the default).
+
+### Update 2026-10-05: SMTP configured, live send VERIFIED
+User supplied a Gmail app password; stored in git-ignored `BACKEND/.env`
+(`SMTP_HOST/PORT/USERNAME/PASSWORD`, sender + recipient
+`sayonsawbib@gmail.com`). Debugging note: the first live test still said
+"not configured" because a stale pre-edit uvicorn child (PID 7064, started
+before the `.env` edit; `--reload` does not watch `.env`) was still holding
+:8000 alongside the new processes. Killed all python listeners, restarted
+one clean server (no reloader, single PID). Fresh live round-trip
+(register -> product -> review): `POST /api/reviews` 201 with
+`email: {sent: True, reason: sent}` - Gmail accepted the message.
 
 ---
 

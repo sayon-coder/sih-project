@@ -50,6 +50,8 @@ from app.llm.provider import get_llm_provider, get_llm_provider_for
 from app.models.models import User
 from app.schemas.schemas import APIResponse
 from app.utils import get_current_user_model
+from app.config import get_settings
+from app.utils.cache import cache, cache_invalidate_prefix
 
 logger = logging.getLogger(__name__)
 
@@ -96,8 +98,10 @@ def build_graph(
 
     Idempotent: nodes upsert on their normalised name and edges on
     ``(from, to, relation)``, so re-running only refreshes evidence.
+    A rebuild changes node listings, so the node-list cache is dropped.
     """
     stats = build_or_refresh_graph(db, full=bool(body.full) if body else False)
+    cache_invalidate_prefix("graph:")
     return APIResponse(
         success=True,
         data=stats,
@@ -128,6 +132,13 @@ def list_nodes(
             ),
         )
 
+    settings = get_settings()
+    cache_key = f"graph:nodes:t{node_type}:q{q}:l{limit}"
+    if settings.cache_enabled:
+        hit = cache.get(cache_key)
+        if hit is not None:
+            return APIResponse(success=True, data=hit)
+
     query_ = db.query(GraphNode)
     if node_type:
         query_ = query_.filter(GraphNode.node_type == node_type.upper())
@@ -138,16 +149,16 @@ def list_nodes(
 
     rows = query_.order_by(GraphNode.node_type, GraphNode.canonical_name).limit(limit).all()
     total = query_.count()
-    return APIResponse(
-        success=True,
-        data={
-            "nodes": [node_to_dict(row) for row in rows],
-            "count": len(rows),
-            "total": total,
-            "review_required": True,
-            "note": GRAPH_REVIEW_NOTE,
-        },
-    )
+    data = {
+        "nodes": [node_to_dict(row) for row in rows],
+        "count": len(rows),
+        "total": total,
+        "review_required": True,
+        "note": GRAPH_REVIEW_NOTE,
+    }
+    if settings.cache_enabled:
+        cache.set(cache_key, data, ttl=settings.cache_graph_ttl_seconds)
+    return APIResponse(success=True, data=data)
 
 
 @router.get("/api/graph/nodes/{node_id}", response_model=APIResponse)

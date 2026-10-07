@@ -42,6 +42,8 @@ from app.models.models import User
 from app.schemas.schemas import APIResponse
 from app.services.privacy_service import effective_source_consent, source_consent_out
 from app.utils import get_current_user_model
+from app.config import get_settings
+from app.utils.cache import cache
 
 router = APIRouter(prefix="/api/official-sources", tags=["Official Sources"])
 
@@ -82,28 +84,35 @@ def list_sources(
             },
         )
 
-    if q:
-        entries = sources_for_topic(q)
-        # Combine the free-text pass with any structured filters.
-        if jurisdiction or ip_type or topic or access:
-            allowed = {
-                entry["id"]
-                for entry in list_official_sources(
-                    jurisdiction=jurisdiction,
-                    ip_type=ip_type,
-                    topic=topic,
-                    access=access,
-                )
-            }
-            entries = [entry for entry in entries if entry["id"] in allowed]
-    else:
-        entries = list_official_sources(
-            jurisdiction=jurisdiction,
-            ip_type=ip_type,
-            topic=topic,
-            access=access,
-        )
-
+    settings = get_settings()
+    cache_key = (
+        f"registry:list:j{jurisdiction}:i{ip_type}:t{topic}:a{access}:q{q}"
+    )
+    entries = cache.get(cache_key) if settings.cache_enabled else None
+    if entries is None:
+        if q:
+            entries = sources_for_topic(q)
+            # Combine the free-text pass with any structured filters.
+            if jurisdiction or ip_type or topic or access:
+                allowed = {
+                    entry["id"]
+                    for entry in list_official_sources(
+                        jurisdiction=jurisdiction,
+                        ip_type=ip_type,
+                        topic=topic,
+                        access=access,
+                    )
+                }
+                entries = [entry for entry in entries if entry["id"] in allowed]
+        else:
+            entries = list_official_sources(
+                jurisdiction=jurisdiction,
+                ip_type=ip_type,
+                topic=topic,
+                access=access,
+            )
+        if settings.cache_enabled:
+            cache.set(cache_key, entries, ttl=settings.cache_registry_ttl_seconds)
     free = sum(1 for entry in entries if entry["direct_access"])
     gated = len(entries) - free
     return APIResponse(
@@ -126,14 +135,20 @@ def topics(
     current_user: User = Depends(get_current_user_model),
 ):
     """Distinct topics and jurisdictions covered by the registry."""
-    return APIResponse(
-        success=True,
-        data={
+    settings = get_settings()
+    hit = cache.get("registry:topics") if settings.cache_enabled else None
+    if hit is None:
+        hit = {
             "topics": distinct_topics(),
             "jurisdictions": distinct_jurisdictions(),
             "access_values": list(ACCESS_VALUES),
-        },
-        message=f"{len(distinct_topics())} topic(s)",
+        }
+        if settings.cache_enabled:
+            cache.set("registry:topics", hit, ttl=settings.cache_registry_ttl_seconds)
+    return APIResponse(
+        success=True,
+        data=hit,
+        message=f"{len(hit['topics'])} topic(s)",
     )
 
 

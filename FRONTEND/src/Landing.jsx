@@ -144,9 +144,6 @@ export default function Landing() {
             <span>IP-SAKTI Sahayak</span>
           </Link>
           <nav className="lp-links" aria-label="Primary">
-            <a href="#platform">Platform</a>
-            <a href="#method">Method</a>
-            <Link to="/overview">Overall product view</Link>
             <Link to="/login">Sign in</Link>
             <Link to="/register" className="lp-btn lp-btn-primary lp-btn-sm">Get access</Link>
           </nav>
